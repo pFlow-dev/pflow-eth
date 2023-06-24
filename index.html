@@ -1,0 +1,95 @@
+<html>
+<head>
+    <title>Connect to crypto wallet</title>
+    <script crossorigin="anonymous"
+            integrity="sha256-jNzSqmjGhIDVGAygzWTxkMcGT97P9ZbqNAQuul/xgds=" src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://pflow.dev/js/metamodel.js"></script>
+    <script src="https://pflow.dev/demo/tictactoe/model.js"></script>
+    <script src="https://pflow.dev/demo/tictactoe/controller.js"></script>
+</head>
+<body>
+<script>
+    function showElement(elementId) {
+        document.getElementById(elementId).setAttribute("visibility", "visible")
+    }
+
+    const ctl = Control("tictactoe", model.tictactoe)
+        .subscribe((event) => {
+            console.log("frame_" + event.seq, event)
+            showElement(event.action)
+            if (event.game.over && event.game.winner) {
+                showElement(event.game.winner.winSet)
+            }
+        })
+
+    /* To connect using MetaMask */
+    async function connect() {
+        if (window.ethereum) {
+            await window.ethereum.request({method: "eth_requestAccounts"});
+            window.web3 = new Web3(window.ethereum);
+            const account = web3.eth.accounts;
+            //Get the current MetaMask selected/active wallet
+            const walletAddress = account.givenProvider.selectedAddress;
+            console.log(`Wallet: ${walletAddress}`);
+            ctl.load(); // binds Dapp events to html
+            /*
+            TODO: try to interact: contracts/Metamodel_flattened.sol:TicTacToe deployed to 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+             */
+        } else {
+            console.log("No wallet");
+        }
+    }
+</script>
+<input onclick="connect();" type="button" value="Connect Wallet">
+<br/>
+<svg height="500" id="board" width="500">
+    <rect fill="#ffffff" height="100" id="00" stroke="#000000" width="100" x="100" y="100"/>
+    <rect fill="#ffffff" height="100" id="01" stroke="#000000" width="100" x="200" y="100"/>
+    <rect fill="#ffffff" height="100" id="02" stroke="#000000" width="100" x="300" y="100"/>
+
+    <rect fill="#ffffff" height="100" id="10" stroke="#000000" width="100" x="100" y="200"/>
+    <rect fill="#ffffff" height="100" id="11" stroke="#000000" width="100" x="200" y="200"/>
+    <rect fill="#ffffff" height="100" id="12" stroke="#000000" width="100" x="300" y="200"/>
+
+    <rect fill="#ffffff" height="100" id="20" stroke="#000000" width="100" x="100" y="300"/>
+    <rect fill="#ffffff" height="100" id="21" stroke="#000000" width="100" x="200" y="300"/>
+    <rect fill="#ffffff" height="100" id="22" stroke="#000000" width="100" x="300" y="300"/>
+
+    <text font-size="5em" id="O00" visibility="hidden" x="122" y="175">O</text>
+    <text font-size="5em" id="O01" visibility="hidden" x="222" y="175">O</text>
+    <text font-size="5em" id="O02" visibility="hidden" x="322" y="175">O</text>
+
+    <text font-size="5em" id="X00" visibility="hidden" x="122" y="175">X</text>
+    <text font-size="5em" id="X01" visibility="hidden" x="222" y="175">X</text>
+    <text font-size="5em" id="X02" visibility="hidden" x="322" y="175">X</text>
+
+    <text font-size="5em" id="O10" visibility="hidden" x="122" y="275">O</text>
+    <text font-size="5em" id="O11" visibility="hidden" x="222" y="275">O</text>
+    <text font-size="5em" id="O12" visibility="hidden" x="322" y="275">O</text>
+
+    <text font-size="5em" id="X10" visibility="hidden" x="122" y="275">X</text>
+    <text font-size="5em" id="X11" visibility="hidden" x="222" y="275">X</text>
+    <text font-size="5em" id="X12" visibility="hidden" x="322" y="275">X</text>
+
+    <text font-size="5em" id="O20" visibility="hidden" x="122" y="375">O</text>
+    <text font-size="5em" id="O21" visibility="hidden" x="222" y="375">O</text>
+    <text font-size="5em" id="O22" visibility="hidden" x="322" y="375">O</text>
+
+    <text font-size="5em" id="X20" visibility="hidden" x="122" y="375">X</text>
+    <text font-size="5em" id="X21" visibility="hidden" x="222" y="375">X</text>
+    <text font-size="5em" id="X22" visibility="hidden" x="322" y="375">X</text>
+
+    <line id="win-0" stroke="#000000" stroke-width="4px" visibility="hidden" x1="125" x2="375" y1="150" y2="150"></line>
+    <line id="win-1" stroke="#000000" stroke-width="4px" visibility="hidden" x1="125" x2="375" y1="250" y2="250"></line>
+    <line id="win-2" stroke="#000000" stroke-width="4px" visibility="hidden" x1="125" x2="375" y1="350" y2="350"></line>
+
+    <line id="win-3" stroke="#000000" stroke-width="4px" visibility="hidden" x1="150" x2="150" y1="375" y2="125"></line>
+    <line id="win-4" stroke="#000000" stroke-width="4px" visibility="hidden" x1="250" x2="250" y1="375" y2="125"></line>
+    <line id="win-5" stroke="#000000" stroke-width="4px" visibility="hidden" x1="350" x2="350" y1="375" y2="125"></line>
+
+    <line id="win-6" stroke="#000000" stroke-width="4px" visibility="hidden" x1="125" x2="375" y1="125" y2="375"></line>
+    <line id="win-7" stroke="#000000" stroke-width="4px" visibility="hidden" x1="125" x2="375" y1="375" y2="125"></line>
+
+</svg>
+</body>
+</html>
