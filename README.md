@@ -1,7 +1,7 @@
 pflow-eth
 ---------
 
-An SDK for deploying petri-net models on Etherem / EVM compatible blockchains.
+An SDK for deploying petri-net models on Ethereum / EVM compatible blockchains.
 
 Status
 ------
