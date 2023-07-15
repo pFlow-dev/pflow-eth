@@ -2,18 +2,22 @@ const {
   time,
   loadFixture,
 } = require("@nomicfoundation/hardhat-network-helpers");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
-const { expect } = require("chai");
 require("@nomiclabs/hardhat-web3");
 const { ethers } = require("hardhat");
-const web3 = require("web3");
 
 describe("Metamodel", function () {
   async function deployTestProxy() {
     // Contracts are deployed using the first signer/account by default
     const [owner, p0, p1] = await ethers.getSigners();
 
-    const contract = await ethers.getContractFactory("contracts/Metamodel.sol:TicTacToe");
+    // const Lib = await ethers.getContractFactory("contracts/Metamodel.sol:TicTacToeModel");
+    // const lib = await Lib.deploy();
+    // await lib.deployed();
+    const contract = await ethers.getContractFactory("contracts/TicTacToe.sol:TicTacToe", {
+        libraries: {
+            // TicTacToeModel: lib.address,
+        },
+    });
     const api = await contract.deploy(p0.address, p1.address); // REVIEW: swap to test access ctl
     // console.log(api.from);
 
