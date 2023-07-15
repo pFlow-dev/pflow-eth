@@ -1,7 +1,16 @@
 pflow-eth
 =========
 
-An SDK for deploying petri-net models on Ethereum / EVM compatible blockchains.
+Pflow.eth is a Web3 Metamodel Repository.
+
+Embed links to formal models of your smart contract.
+Build models with the Solidity Metamodel libraries.
+
+Motivation
+----------
+
+We want to compose smart contracts that are Visualizable and Formally verified.
+Why not embed the proofs directly in the code?
 
 Status
 ------
