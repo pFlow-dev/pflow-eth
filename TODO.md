@@ -3,13 +3,13 @@ Overview
 _Goals:_
 
 * Help developers build large on-chain structures securely
-* Reach out to programers who want to build state-machines on Solidity
+* Reach out to programmers who want to build state-machines on Solidity
   * provide code and documentation
 * Build a really large network of composable models on and off chain
 
 _Why?_
 
-Meta-modeling can live between 'programing' and 'AI' - ai models can be derived from meta-models by generating data sets.
+Meta-modeling can live between 'programming' and 'AI' - ai models can be derived from meta-models by generating data sets.
 
 Why on the Blockchain?
 
@@ -24,14 +24,20 @@ We want to build data-composability on top of a token infrastructure that does _
 
 WIP
 ---
-* [ ] build out JS front end - re-deploy to pflow.eth
-* [ ] use quicknode callbacaks in Dapp - deploy on sepolia
-* [ ] deploy end-to-end POC for TicTacToe
-* [ ] deploy end-to-end POC for KonamiCode
+
+* [ ] FIXME: creation of TicTacToe errored: Missing or invalid parameters.  Double check you have provided the correct parameters.
+
+* [ ] test restricted mechanisms w/ Konami - as it is built we expect test sequence to fail ??
+* [ ] complete multi-user KonamiCode contract
+* [ ] review inhibitor rules in Konami for correctness
 
 
 BACKLOG
 -------
+* [ ] build out JS front end - re-deploy to pflow.eth
+* [ ] use quicknode callbacks in Dapp - deploy on sepolia
+* [ ] deploy end-to-end POC for TicTacToe
+* [ ] deploy end-to-end POC for KonamiCode
 * [ ] test quicknode callbacks
 * [ ] test w/ Quicknode on Sepolia Testnet w/ quick-alerts
 * [ ] investigate using https://eips.ethereum.org/EIPS/eip-712 for offline message signing ?  what if we just send events w/o state?

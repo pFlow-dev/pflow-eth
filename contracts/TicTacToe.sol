@@ -29,12 +29,14 @@ library TicTacToeModel {
 
 abstract contract TicTacToeMetaModel is MetamodelUint8 {
 
-    // add a new action
+    string public constant metamodelUri = "ipns://pflow.eth?contract=TicTacToe";
+
+    // add an action to the model
     function _action(TicTacToeModel.Properties prop, TicTacToeModel.Actions action, TicTacToeModel.Roles role) internal {
         txn(1, places[uint8(prop)], fn(uint8(TicTacToeModel.Properties.SIZE), uint8(action), uint8(role)));
     }
 
-    // add a property to the model
+    // declare model properties
     function _props() internal {
         cell(1, 1); // _00
         cell(1, 1); // _01
@@ -49,6 +51,7 @@ abstract contract TicTacToeMetaModel is MetamodelUint8 {
         cell(1, 1); // _22
     }
 
+    // declare model actions
     function _actions() internal {
         _action(TicTacToeModel.Properties._00, TicTacToeModel.Actions.X00, TicTacToeModel.Roles.X);
         _action(TicTacToeModel.Properties._01, TicTacToeModel.Actions.X01, TicTacToeModel.Roles.X);
@@ -73,7 +76,6 @@ abstract contract TicTacToeMetaModel is MetamodelUint8 {
         _action(TicTacToeModel.Properties._20, TicTacToeModel.Actions.O20, TicTacToeModel.Roles.O);
         _action(TicTacToeModel.Properties._21, TicTacToeModel.Actions.O21, TicTacToeModel.Roles.O);
         _action(TicTacToeModel.Properties._22, TicTacToeModel.Actions.O22, TicTacToeModel.Roles.O);
-
     }
 
     constructor() {
@@ -85,8 +87,6 @@ abstract contract TicTacToeMetaModel is MetamodelUint8 {
 
 /// @custom:security-contact security@stackdump.com
 contract TicTacToe is TicTacToeMetaModel, AccessControl {
-
-    string public constant metamodelUri = "ipns://pflow.eth?contract=TicTacToe";
 
     address internal owner;
 
@@ -115,7 +115,6 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
         }
     }
 
-    // no news is good news - revert if game is paused
     function testIsGameOpen() public view {
         require(!paused, "Game is paused.");
     }
@@ -145,7 +144,7 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
     }
 
     function resetGame(TicTacToeModel.Roles role) internal startGame {
-        emit Uint8Model.Action(session, sequence, uint8(TicTacToeModel.Actions.HALT), uint8(role), block.timestamp);
+        emit Uint8Model.SignalEvent(session, sequence, uint8(TicTacToeModel.Actions.HALT), uint8(role), block.timestamp);
     }
 
     function transform(uint8 i, Uint8Model.Transition memory t)  internal override {
@@ -161,7 +160,7 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
         sequence++;
     }
 
-    function send(TicTacToeModel.Actions action) internal takeTurns {
+    function signal(TicTacToeModel.Actions action) internal takeTurns {
         uint8 txnId = uint8(action);
         Uint8Model.Transition memory t = transitions[txnId];
         assert(txnId == t.offset);
@@ -174,14 +173,13 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
         transform(6, t); // _20
         transform(7, t); // _21
         transform(8, t); // _22
-        emit Uint8Model.Action(session, sequence, txnId, t.role, block.timestamp);
+        emit Uint8Model.SignalEvent(session, sequence, txnId, t.role, block.timestamp);
     }
 
     function reset() public {
         resetGame(getRole());
     }
 
-    // no news is good news - revert if it is not the caller's turn
     function testIsMyTurn() public view  {
         testIsGameOpen();
             require(!hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Gameplay from contract admin is forbidden");
@@ -202,75 +200,75 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
         }
     }
 
-    function X00() public {
-        send(TicTacToeModel.Actions.X00);
+    function X00() external {
+        signal(TicTacToeModel.Actions.X00);
     }
 
-    function X01() public {
-        send(TicTacToeModel.Actions.X01);
+    function X01() external {
+        signal(TicTacToeModel.Actions.X01);
     }
 
-    function X02() public {
-        send(TicTacToeModel.Actions.X02);
+    function X02() external {
+        signal(TicTacToeModel.Actions.X02);
     }
 
-    function X10() public {
-        send(TicTacToeModel.Actions.X10);
+    function X10() external {
+        signal(TicTacToeModel.Actions.X10);
     }
 
-    function X11() public {
-        send(TicTacToeModel.Actions.X11);
+    function X11() external {
+        signal(TicTacToeModel.Actions.X11);
     }
 
-    function X12() public {
-        send(TicTacToeModel.Actions.X12);
+    function X12() external {
+        signal(TicTacToeModel.Actions.X12);
     }
 
-    function X20() public {
-        send(TicTacToeModel.Actions.X20);
+    function X20() external {
+        signal(TicTacToeModel.Actions.X20);
     }
 
-    function X21() public {
-        send(TicTacToeModel.Actions.X21);
+    function X21() external {
+        signal(TicTacToeModel.Actions.X21);
     }
 
-    function X22() public {
-        send(TicTacToeModel.Actions.X22);
+    function X22() external {
+        signal(TicTacToeModel.Actions.X22);
     }
 
-    function O00() public {
-        send(TicTacToeModel.Actions.O00);
+    function O00() external {
+        signal(TicTacToeModel.Actions.O00);
     }
 
-    function O01() public {
-        send(TicTacToeModel.Actions.O01);
+    function O01() external {
+        signal(TicTacToeModel.Actions.O01);
     }
 
-    function O02() public {
-        send(TicTacToeModel.Actions.O02);
+    function O02() external {
+        signal(TicTacToeModel.Actions.O02);
     }
 
-    function O10() public {
-        send(TicTacToeModel.Actions.O10);
+    function O10() external {
+        signal(TicTacToeModel.Actions.O10);
     }
 
-    function O11() public {
-        send(TicTacToeModel.Actions.O11);
+    function O11() external {
+        signal(TicTacToeModel.Actions.O11);
     }
 
-    function O12() public {
-        send(TicTacToeModel.Actions.O12);
+    function O12() external {
+        signal(TicTacToeModel.Actions.O12);
     }
 
-    function O20() public {
-        send(TicTacToeModel.Actions.O20);
+    function O20() external {
+        signal(TicTacToeModel.Actions.O20);
     }
 
-    function O21() public {
-        send(TicTacToeModel.Actions.O21);
+    function O21() external {
+        signal(TicTacToeModel.Actions.O21);
     }
 
-    function O22() public {
-        send(TicTacToeModel.Actions.O22);
+    function O22() external {
+        signal(TicTacToeModel.Actions.O22);
     }
 }

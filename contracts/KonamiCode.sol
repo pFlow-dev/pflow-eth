@@ -2,6 +2,8 @@
 pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Metamodel.sol";
+import "hardhat/console.sol";
+
 
 library KonamiCodeModel {
 
@@ -34,7 +36,8 @@ library KonamiCodeModel {
 
 abstract contract KonamiCodeMetaModel is MetamodelUint8 {
 
-    // add a new action
+    string public constant metamodelUri = "ipns://pflow.eth?contract=KonamiCode";
+
     function _txn(KonamiCodeModel.Properties prop, KonamiCodeModel.Actions action, uint8 weight ) internal {
         txn(weight, places[uint8(prop)], transitions[uint8(action)]);
     }
@@ -51,7 +54,7 @@ abstract contract KonamiCodeMetaModel is MetamodelUint8 {
         cell(2, 2); // TwoUps
         cell(2, 2); // TwoDowns
         cell(2, 2); // TwoLefts
-        cell(0, 1); // TwoRights
+        cell(0, 2); // TwoRights
         cell(0, 1); // ThenRight
         cell(0, 1); // ThenSelect
         cell(0, 1); // ThenStart
@@ -63,14 +66,9 @@ abstract contract KonamiCodeMetaModel is MetamodelUint8 {
     }
 
     function _actions() internal {
-        _action(KonamiCodeModel.Actions.Up);
-        _action(KonamiCodeModel.Actions.Down);
-        _action(KonamiCodeModel.Actions.Left);
-        _action(KonamiCodeModel.Actions.Right);
-        _action(KonamiCodeModel.Actions.Select);
-        _action(KonamiCodeModel.Actions.Start);
-        _action(KonamiCodeModel.Actions.B);
-        _action(KonamiCodeModel.Actions.A);
+        for (uint8 i = 0; i < uint8(KonamiCodeModel.Properties.SIZE); i++) {
+            _action(KonamiCodeModel.Actions(i));
+        }
     }
 
     constructor() {
@@ -99,15 +97,12 @@ abstract contract KonamiCodeMetaModel is MetamodelUint8 {
 
         _txn(KonamiCodeModel.Properties.ThenStart, KonamiCodeModel.Actions.Start, 1);
         _txn(KonamiCodeModel.Actions.Select, KonamiCodeModel.Properties.ThenStart, 1);
-
     }
 
 }
 
 /// @custom:security-contact security@stackdump.com
 contract KonamiCode is KonamiCodeMetaModel, AccessControl {
-
-    string public constant metamodelUri = "ipns://pflow.eth?contract=KonamiCode";
 
     address internal owner;
 
@@ -123,22 +118,17 @@ contract KonamiCode is KonamiCodeMetaModel, AccessControl {
     constructor() {
         owner = msg.sender;
         _setupRole(DEFAULT_ADMIN_ROLE, owner);
-        resetGame(KonamiCodeModel.Roles.HALT);
+        resetSession(KonamiCodeModel.Roles.HALT);
     }
 
-    modifier startGame() {
+    modifier startSession() {
         sequence = 0;
         session++;
         _;
-        Uint8Model.Place[] memory p = places;
-        _init(p[0]); // TwoUps
-        _init(p[1]); // TwoDowns
-        _init(p[2]); // TwoLefts
-        _init(p[3]); // TwoRights
-        _init(p[4]); // ThenRight
-        _init(p[5]); // ThenSelect
-        _init(p[6]); // ThenStart
-        _init(p[7]); // ThenA
+        Uint8Model.Place[] memory pl = places;
+        for (uint8 i = 0; i < uint8(KonamiCodeModel.Properties.SIZE); i++) {
+            _init(pl[i]);
+        }
     }
 
     function _init(Uint8Model.Place memory p) internal {
@@ -160,56 +150,108 @@ contract KonamiCode is KonamiCodeMetaModel, AccessControl {
         paused = false;
     }
 
-    function resetGame(KonamiCodeModel.Roles role) internal startGame {
-        emit Uint8Model.Action(session, sequence, uint8(KonamiCodeModel.Actions.HALT), uint8(role), block.timestamp);
+    function resetSession(KonamiCodeModel.Roles role) internal startSession {
+        emit Uint8Model.SignalEvent(session, sequence, uint8(KonamiCodeModel.Actions.HALT), uint8(role), block.timestamp);
+    }
+
+    modifier inhibitAction(Uint8Model.Transition memory t) {
+        require(!paused, "Game is paused.");
+        require(!inhibited(t), "Action is inhibited.");
+        _;
     }
 
     function transform(uint8 i, Uint8Model.Transition memory t)  internal override {
-        // TODO: compute state per player
         if (t.delta[i] != 0) {
             state[i] = state[i] + t.delta[i];
-            require(state[i] >= 0, "Invalid state");
+            // require(state[i] >= 0, 'invalid state');
+            if (state[i] < 0) {
+                resetLast(t.offset);
+            }
         }
     }
 
-    function send(KonamiCodeModel.Actions action) internal {
-        emit Uint8Model.Action(session, sequence, uint8(action), uint8(KonamiCodeModel.Roles.PLAYER), block.timestamp);
+    function resetLast(uint8 i) internal {
+        resetSession(KonamiCodeModel.Roles.HALT);
+        if (i == uint8(KonamiCodeModel.Actions.Up)) {
+            signal(KonamiCodeModel.Actions.Up); // re-apply first move after reset
+        }
     }
 
-    function getRole() public pure returns (KonamiCodeModel.Roles) {
-        return KonamiCodeModel.Roles.PLAYER;
+    function _transform(Uint8Model.Transition memory t) internal {
+        Uint8Model.Place[] memory p = places;
+        if (inhibited(t)) {
+            resetLast(t.offset);
+        }
+        for (uint8 i = 0; i < uint8(KonamiCodeModel.Properties.SIZE); i++) {
+            transform(i, t);
+            if (p[i].capacity != 0) {
+                if (state[i] > p[i].capacity) {
+                    resetLast(t.offset);
+                }
+            }
+        }
     }
 
-    function Up() public {
-        send(KonamiCodeModel.Actions.Up);
+    function inhibited(Uint8Model.Transition memory t) internal view returns (bool) {
+        for (uint8 i = 0; i < uint8(KonamiCodeModel.Properties.SIZE); i++) {
+            if (_isInhibited(i, t)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    function Down() public {
-        send(KonamiCodeModel.Actions.Down);
+    function _isInhibited(uint8 i, Uint8Model.Transition memory t) internal view returns (bool) {
+        if (t.guard[i] != 0) {
+            return state[i] + t.guard[i] >= 0;
+        }
+        return false;
     }
 
-    function Left() public {
-        send(KonamiCodeModel.Actions.Left);
+    modifier applySignal() {
+        // If valid then apply signal
+        // If invalid then reset game
+        _;
+        sequence++;
     }
 
-    function Right() public {
-        send(KonamiCodeModel.Actions.Right);
+    function signal(KonamiCodeModel.Actions action) internal applySignal {
+        uint8 txnId = uint8(action);
+        Uint8Model.Transition memory t = transitions[txnId];
+        _transform(t);
+        emit Uint8Model.SignalEvent(session, sequence, uint8(action), uint8(KonamiCodeModel.Roles.PLAYER), block.timestamp);
     }
 
-    function Select() public {
-        send(KonamiCodeModel.Actions.Select);
+    function Up() external {
+        signal(KonamiCodeModel.Actions.Up);
     }
 
-    function Start() public {
-        send(KonamiCodeModel.Actions.Start);
+    function Down() external {
+        signal(KonamiCodeModel.Actions.Down);
     }
 
-    function B() public {
-        send(KonamiCodeModel.Actions.B);
+    function Left() external {
+        signal(KonamiCodeModel.Actions.Left);
     }
 
-    function A() public {
-        send(KonamiCodeModel.Actions.A);
+    function Right() external {
+        signal(KonamiCodeModel.Actions.Right);
+    }
+
+    function Select() external {
+        signal(KonamiCodeModel.Actions.Select);
+    }
+
+    function Start() external {
+        signal(KonamiCodeModel.Actions.Start);
+    }
+
+    function B() external {
+        signal(KonamiCodeModel.Actions.B);
+    }
+
+    function A() external {
+        signal(KonamiCodeModel.Actions.A);
     }
 
 }

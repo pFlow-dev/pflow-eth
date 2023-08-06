@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 
 library Uint8Model {
 
-    event Action(uint256 indexed session, uint8 indexed sequence, uint8 actionId, uint8 role, uint256 when);
+    event SignalEvent(uint256 indexed session, uint8 indexed sequence, uint8 indexed actionId, uint8 role, uint256 when);
 
     struct PetriNet {
         Place[] places;
