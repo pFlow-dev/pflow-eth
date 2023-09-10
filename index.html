@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Connect to crypto wallet</title>
+    <title>TicTacToe | Petri-nets in Solidity</title>
     <script crossorigin="anonymous"
             integrity="sha256-jNzSqmjGhIDVGAygzWTxkMcGT97P9ZbqNAQuul/xgds=" src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <script src="https://pflow.dev/js/metamodel.js"></script>
@@ -98,7 +98,7 @@ function getABI(){
     async function resetGame() {
         if (window.contract) {
             console.log('resettingGame');
-            await contract.methods.reset().send();
+            await contract.methods.reset().send({ from: walletAddress });
         } else {
             console.log('Wallet not connected');
         }

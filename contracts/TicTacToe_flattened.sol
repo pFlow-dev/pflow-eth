@@ -1,3 +1,7 @@
+
+// File: contracts/Metamodel.sol
+
+
 pragma solidity ^0.8.18;
 
 library Uint8Model {
@@ -1071,10 +1075,14 @@ contract TicTacToe is TicTacToeMetaModel, AccessControl {
     bytes32 public constant PLAYER_X = keccak256("PLAYER_X");
     bytes32 public constant PLAYER_O = keccak256("PLAYER_O");
 
+    address PlayerX;
+    address PlayerO;
 
     constructor(address p0, address p1) {
         owner = msg.sender;
         require(p0 != p1, "Players must not have the same address.");
+        PlayerX = p0;
+        PlayerO = p1;
         _setupRole(DEFAULT_ADMIN_ROLE, owner);
         _grantRole(PLAYER_X, p0);
         _grantRole(PLAYER_O, p1);

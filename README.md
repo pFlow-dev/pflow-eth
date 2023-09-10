@@ -21,6 +21,14 @@ Testing on  Sepolia Testnet: https://sepolia.etherscan.io/address/0x33908630f6ee
 
 Testing on Scroll Testnet: https://sepolia-blockscout.scroll.io/address/0x2A9862692E1d681dA5986B4C96D582dD0Ef29433
 
+```
+Metadata and sources of "tictactoe" were published successfully.
+contracts/TicTacToe_flattened.sol : 
+dweb:/ipfs/QmVymBsnnW9gKVCD9XyJENtP2pmetggtMJKR21gT6i35nR
+metadata.json : 
+dweb:/ipfs/QmT6LNecQRawvpTH4maofgFjgWXsRDMjMYv6ajBfhJTkg7
+```
+
 
 Models
 ======

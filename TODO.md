@@ -24,19 +24,16 @@ We want to build data-composability on top of a token infrastructure that does _
 
 WIP
 ---
-- [ ] test restricted mechanisms w/ Konami - as it is built we expect test sequence to fail ??
-- [ ] complete multi-user KonamiCode contract
-- [ ] review inhibitor rules in Konami for correctness
+- [ ] enhance the front end JS app for TicTacToe
 
 
 BACKLOG
 -------
-- [ ] use quicknode callbacks in Dapp - deploy on sepolia
+- [ ] test restricted mechanisms w/ Konami - as it is built we expect test sequence to fail ??
+- [ ] complete multi-user KonamiCode contract
+- [ ] review inhibitor rules in Konami for correctness
 - [ ] deploy end-to-end POC for TicTacToe
 - [ ] deploy end-to-end POC for KonamiCode
-- [ ] test quicknode callbacks
-- [ ] test w/ Quicknode on Sepolia Testnet w/ quick-alerts
-- [ ] investigate using https://eips.ethereum.org/EIPS/eip-712 for offline message signing ?  what if we just send events w/o state?
 
 DONE
 ----
@@ -50,6 +47,9 @@ DONE
 
 ICEBOX
 ------
+- [ ] investigate using https://eips.ethereum.org/EIPS/eip-712 for offline message signing ?  what if we just send events w/o state?
+- [ ] test w/ Quicknode on Sepolia Testnet w/ quick-alerts
+- [ ] use quicknode callbacks in Dapp - deploy on sepolia
 - [ ] should we adopt IPFS pubsub? https://github.com/ipfs/js-ipfs/blob/master/docs/core-api/PUBSUB.md
 - [ ] REVIEW: how to add signed data https://github.com/rarible/protocol-contracts/blob/master/meta-tx/contracts/EIP712MetaTransaction.sol
 - [ ] plan ERC721 adoption for metamodel publishing
