@@ -6,7 +6,6 @@
     <script src="https://pflow.dev/js/metamodel.js"></script>
     <script src="https://pflow.dev/demo/tictactoe/model.js"></script>
     <script src="https://pflow.dev/demo/tictactoe/controller.js"></script>
-    <script scr="abi.js"></script>
 </head>
 <body>
 <script>
@@ -16,6 +15,9 @@ function getABI(){
     function showElement(elementId) {
         document.getElementById(elementId).setAttribute("visibility", "visible")
     }
+
+    // deployed https://sepolia-blockscout.scroll.io/address/0x2A9862692E1d681dA5986B4C96D582dD0Ef29433/contracts#address-tabs
+    addr = '0x2A9862692E1d681dA5986B4C96D582dD0Ef29433'
 
     const ctl = Control("tictactoe", model.tictactoe)
         .subscribe((event) => {
@@ -41,24 +43,69 @@ function getABI(){
             window.walletAddress = account.givenProvider.selectedAddress;
             console.log(`Wallet: ${walletAddress}`);
             ctl.load(); // binds Dapp events to html
-            // deployed https://sepolia-blockscout.scroll.io/address/0x2A9862692E1d681dA5986B4C96D582dD0Ef29433/contracts#address-tabs
-            addr = '0x2A9862692E1d681dA5986B4C96D582dD0Ef29433'
             window.contract = new web3.eth.Contract( getABI(), addr)
+            window.model = getModel();
+            setTimeout(subscribeToEvents, 0) // start the Dapp
         } else {
             console.log("No wallet");
         }
-        return getModel();
+    }
+
+    function assertConnected() {
+        if (!window.contract) {
+            throw new Error("not connected")
+        }
+    }
+
+    async function subscribeToEvents() {
+    }
+
+    const boardMap = {
+        '00': 0,
+        '01': 1,
+        '02': 2,
+        '10': 3,
+        '11': 4,
+        '12': 5,
+        '20': 6,
+        '21': 7,
+        '22': 8,
     }
 
     async function getModel() {
-        // const out = await contract.methods.model().send({from: walletAddress });
-        const model = await contract.methods.model().call();
-        const state0 = await contract.methods.state(0).call();
-        const state1 = await contract.methods.state(1).call();
-        console.log({model, state0, state1}, 'getModel')
+        // REVIEW: ideally we would be able to infer the model definition from this response
+        // this front end library does not do that yet - it would also have to infer the visual layout
+        const { places, transitions } = await contract.methods.model().call();
+
+        async function getState(n)  {
+            const s = await contract.methods.state(boardMap[n]).call();
+            return parseInt(s)
+        }
+
+        const state = {}
+        for (const label of Object.keys(boardMap)) {
+            state[label] = await getState(label)
+        }
+
+        let role = '?'
+        try {
+            role =  await contract.methods.getRole().call(); // REVIEW: is it OK to use call here?
+        } catch {
+        }
+        console.log({model: { places, transitions}, role, state}, 'getModel')
+    }
+
+    async function resetGame() {
+        if (window.contract) {
+            console.log('resettingGame');
+            await contract.methods.reset().send();
+        } else {
+            console.log('Wallet not connected');
+        }
     }
 
 </script>
+<input onclick="resetGame();" type="button" value="Reset Game">
 <input onclick="connect();" type="button" value="Connect Wallet">
 <br/>
 <svg height="500" id="board" width="500">
