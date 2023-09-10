@@ -19,6 +19,8 @@ WIP / Alpha
 
 Testing on  Sepolia Testnet: https://sepolia.etherscan.io/address/0x33908630f6ee75e05d78cfbfaa4a0e3dc76c8c6e#code
 
+Testing on Scroll Testnet: https://sepolia-blockscout.scroll.io/address/0x2A9862692E1d681dA5986B4C96D582dD0Ef29433
+
 
 Models
 ======
