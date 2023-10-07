@@ -12,3 +12,7 @@ docs/
 
 # Dotenv file
 .env
+.idea
+*_flattened.sol
+artifacts
+.deps
