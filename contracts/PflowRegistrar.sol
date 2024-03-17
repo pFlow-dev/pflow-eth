@@ -7,8 +7,6 @@ interface PflowInterface {
     function register(address _address) external;
 
     function getFlows() external view returns (PflowEth.FlowInfo[] memory);
-
-    function bulkSignal(bytes32[] calldata flowIds, uint8[] calldata actions, uint256[] calldata scalars) external;
 }
 
 abstract contract PflowEth  {
@@ -48,7 +46,7 @@ abstract contract PflowEth  {
     }
 }
 
-contract PflowRegistrar is PflowEth {
+contract PflowRegistrar is PflowEth, PflowInterface {
 
     function register(address _address) external {
         require(routeId[_address] <= 0, "address already registered");
