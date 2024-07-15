@@ -1,0 +1,43 @@
+.transactionTable {
+    border-collapse: collapse;
+}
+
+.transactionTable tbody {
+    display: table-row-group; /* Default value to keep table layout */
+    height: 500px; /* Adjust this value based on your row height to fit approximately 10 rows */
+    overflow-y: auto;
+}
+
+.transactionTable th, .transactionTable td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+
+.transactionTable th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0; /* Keep the header on top */
+}
+
+.removedTransaction {
+    background-color: #ff6347; /* Lighter tomato color for removed transactions */
+}
+
+.truncated {
+    cursor: pointer;
+}
+
+.truncated:hover {
+    max-width: none; /* Allow expansion on hover without a fixed max-width */
+    background-color: #f0f0f0; /* Optional: highlight on hover */
+}
+
+.transactionTable tr:hover {
+    background-color: #f0f0f0; /* Light grey color for highlighting */
+}
+
+.transactionsContainer {
+    max-height: 800px; /* Adjust based on your needs */
+    overflow-y: auto;
+}

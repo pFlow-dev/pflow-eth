@@ -1,0 +1,32 @@
+services:
+  db:
+    image: supabase/postgres:15.1.1.61
+    container_name: pflow_db
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    restart: on-failure
+    volumes:
+        - ./volumes/db/data:/var/lib/postgresql/data:Z
+  app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: go_app
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+      DB_HOST: db
+      ENDPOINT: http://hardhat:8545
+    ports:
+      - "8080:8080"
+    restart: on-failure
+  hardhat:
+    build:
+      context: ../
+      dockerfile: ./hardhat/Dockerfile
+    container_name: hardhat_node
+    ports:
+      - "8545:8545"
+    restart: on-failure
