@@ -1,6 +1,6 @@
 import * as mm from "./model";
 import {ModelType, Version} from "./model";
-import {ethers} from "ethers";
+import {ethers, toBigInt} from "ethers";
 import {MyStateMachine, MyStateMachine__factory} from "../typechain-types";
 import {ModelContext} from "./api";
 
@@ -30,7 +30,7 @@ export interface NodeStatus {
 export class MetaModel {
     petriNet: mm.Model = initialModel;
     height: number = 600;
-    stateMachine: MyStateMachine | null = null;
+    stateMachine: MyStateMachine = {} as MyStateMachine;
     address: string = '';
     provider: ethers.BrowserProvider;
     status: NodeStatus | null = null;
@@ -46,6 +46,10 @@ export class MetaModel {
             this.address = opts.address;
             this.stateMachine = MyStateMachine__factory.connect(opts.address, this.provider)
         }
+    }
+
+    async contract(): Promise<MyStateMachine> {
+        return this.stateMachine.connect(await this.provider.getSigner());
     }
 
     async getModelFromServer(): Promise<ModelContext> {
@@ -80,6 +84,21 @@ export class MetaModel {
         // TODO: return a declaration object
 
         console.log({context})
+    }
+
+    async signal(action: string, scalar: string): Promise<any> {
+        if (!this.stateMachine) {
+            return {error: 'state machine contract not initialized'};
+        }
+        return this.contract()
+            .then((sm) => {
+                    return sm.signal(toBigInt(action), toBigInt(scalar))
+            })
+            .then((tx) => {
+                return tx.wait()
+            }).catch((err) => {
+                return err
+            })
     }
 
     async loadFromContract() {

@@ -1,5 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styles from './Signal.module.css';
+import {MetaModel} from "../lib/pflow";
+import {ContractTransactionResponse} from "ethers";
 
 interface SignalData {
     nonce: number;
@@ -15,11 +17,11 @@ interface SignalData {
 }
 
 type SignalProps = {
-    metaModel: any;
+    metaModel: MetaModel;
 }
 
 function Signal({metaModel}: SignalProps) {
-    const [signalData, setSignalData] = useState<SignalData | null>(null);
+    const [signalData, setSignalData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [action, setAction] = useState<string>('');
     const [scalar, setScalar] = useState<string>('');
@@ -27,12 +29,7 @@ function Signal({metaModel}: SignalProps) {
     useEffect(() => {
         setSignalData({
             nonce: 0,
-            response: {
-                contract: '',
-                event_log: [],
-                sender: '',
-                transaction_hash: ''
-            }
+            response: {},
         });
         setIsLoading(false);
     }, []);
@@ -46,8 +43,12 @@ function Signal({metaModel}: SignalProps) {
     };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        metaModel.loadFromContract();
         e.preventDefault();
+        setIsLoading(true);
+        metaModel.signal(action, scalar).then((data) => {
+            setSignalData(data);
+            setIsLoading(false);
+        });
     };
 
     if (isLoading) {

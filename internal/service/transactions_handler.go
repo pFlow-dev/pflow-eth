@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -97,9 +96,6 @@ func (s Service) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	queryBuilder.WriteString(" ORDER BY sequence DESC")
-
-	fmt.Printf("Query: %s\n", queryBuilder.String())
-	fmt.Printf("Params: %v\n", queryParams)
 
 	rows, err := s.NodeDb.Query(queryBuilder.String(), queryParams...)
 	if err != nil {
