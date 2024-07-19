@@ -2,9 +2,8 @@
 }
 
 
-/* NodeStatus.module.css */
 .tableContainer {
-    width: 100%;
+    width: 98%;
     overflow-x: auto;
 }
 
@@ -17,16 +16,24 @@
 
 .th, .td {
     padding: 8px;
-    text-align: center; /* Center text horizontally */
-    vertical-align: middle; /* Center text vertically */
+    text-align: center;
+    vertical-align: middle;
 }
 
 .tr:nth-child(even) {
     background-color: #f2f2f2;
 
     .tableContainer {
-        width: 100%;
+        width: 90%;
         overflow-x: auto;
-        padding: 20px; /* Add padding around the whole status div */
+        padding: 20px;
     }
+}
+
+.pflowLogoSvg {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    margin: 10px;
+    cursor: pointer;
 }

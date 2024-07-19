@@ -8,7 +8,7 @@ services:
       - "5432:5432"
     restart: on-failure
     volumes:
-        - ./volumes/db/data:/var/lib/postgresql/data:Z
+      - ./volumes/db/data:/var/lib/postgresql/data:Z
   app:
     build:
       context: ../

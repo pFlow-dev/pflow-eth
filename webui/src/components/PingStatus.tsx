@@ -1,28 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import styles from './NodeStatus.module.css';
+import styles from './PingStatus.module.css';
+import {MetaModel, NodeStatus} from "../lib/pflow";
 
-interface NodeStatusData {
-    time: string;
-    block: number;
-    sequence: number;
-    job_timer: string;
-    blocks_added: number;
-    unconfirmed_tx: number;
+type PingStatusProps = {
+    metaModel: MetaModel;
 }
 
-function NodeStatus() {
-    const [nodeData, setNodeData] = useState<NodeStatusData | null>(null);
+function PingStatus({metaModel}: PingStatusProps) {
+    const [nodeData, setNodeData] = useState<NodeStatus | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/v0/node');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data: NodeStatusData = await response.json();
-            setNodeData(data);
+            metaModel.pollServer().then((data) => {
+                setNodeData(data);
+            });
         } catch (error) {
             console.error('Error fetching node data:', error);
         } finally {
@@ -47,13 +40,7 @@ function NodeStatus() {
     return (
         <div className={styles.tableContainer}>
             <svg
-                style={{
-                    position: "absolute",
-                    top: "18",
-                    left: "22",
-                    margin: "10px",
-                    cursor: "pointer"
-                }}
+                className={styles.pflowLogoSvg}
                 width="30" height="30" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g transform="scale(0.1, 0.1) ">
                     <path
@@ -69,7 +56,6 @@ function NodeStatus() {
                     <th>Sync Timestamp</th>
                     <th>Block</th>
                     <th>Seq</th>
-                    <th>Sync Timer</th>
                     <th>Blocks Added</th>
                     <th>Unconfirmed TX</th>
                 </tr>
@@ -81,15 +67,13 @@ function NodeStatus() {
                     <td>{nodeData.time}</td>
                     <td>{nodeData.block}</td>
                     <td>{nodeData.sequence}</td>
-                    <td>{nodeData.job_timer}</td>
                     <td>{nodeData.blocks_added}</td>
                     <td>{nodeData.unconfirmed_tx}</td>
                 </tr>
                 </tbody>
             </table>
-            {/* Removed the manual refresh button as data now refreshes automatically */}
         </div>
     );
 }
 
-export default NodeStatus;
+export default PingStatus;

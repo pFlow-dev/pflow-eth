@@ -8,12 +8,11 @@ import styles from "./StateMachine.module.css";
 
 interface ModelProps {
     metaModel: MetaModel;
-    schema?: string;
 }
 
-export default function Model(props: ModelProps) {
-    const {metaModel, schema} = props;
-    const {places, transitions} = metaModel.m.def;
+export default function PetriNet(props: ModelProps) {
+    const {metaModel} = props;
+    const {places, transitions} = metaModel.petriNet.def;
 
     const placeElements = Array.from(places.keys()).map((label) =>
         <Place key={label} id={label} metaModel={metaModel}/>,
@@ -24,7 +23,7 @@ export default function Model(props: ModelProps) {
     );
 
 
-    const arcs: ReactElement[] = metaModel.m.def.arcs.map((arc: mm.Arc, index: number) => {
+    const arcs: ReactElement[] = metaModel.petriNet.def.arcs.map((arc: mm.Arc, index: number) => {
         const source = arc.source.place || arc.source.transition;
         const target = arc.target.place || arc.target.transition;
         if (!source || !target) {
@@ -54,7 +53,7 @@ export default function Model(props: ModelProps) {
                             <circle cx="5" cy="6.5" r={4}/>
                         </marker>
                     </defs>
-                    <g id={schema} key={schema}>
+                    <g id="petri-net" key="petri-net">
                         {arcs}
                         {placeElements}
                         {transitionElements}

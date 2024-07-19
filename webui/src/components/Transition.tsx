@@ -31,17 +31,10 @@ export default function Transition(props: TransitionProps) {
         // if (metaModel.isSelected(props.id)) {
         //     return "#8140ff";
         // }
-        if (metaModel.isSuper()) {
-            return "#EBFF00";
-        } else {
-            return "#000000";
-        }
+        return "#000000";
     }
 
     function getFill() {
-        if (metaModel.isSuper()) {
-            return "#1C1C1D"
-        }
         const res = metaModel.testFire(props.id)
         if (res.ok) {
             return '#62fa75';
@@ -65,9 +58,6 @@ export default function Transition(props: TransitionProps) {
     }
 
     function TextLabel() {
-        if (metaModel.isSuper()) {
-            return <text id={props.id + '[label]'} x={t.position.x - 15} y={t.position.y - 20}></text>
-        }
         return <text id={props.id + '[label]'} x={t.position.x - 15} y={t.position.y - 20}>{props.id}</text>
     }
 

@@ -22,10 +22,6 @@ export default function Place(props: PlaceProps) {
 
         let tokenColor = "#0000007x";
 
-        if (metaModel.isSuper()) {
-            tokenColor = "#EBFF00";
-        }
-
         if (tokens === 0) {
             return; // don't show zeros
         }
@@ -72,11 +68,7 @@ export default function Place(props: PlaceProps) {
         // if (metaModel.isSelected(props.id)) {
         //     return "#8140ff";
         // }
-        if (metaModel.isSuper()) {
-            return "#EBFF00";
-        } else {
-            return "#000000";
-        }
+        return "#000000";
     }
 
     async function onClick(evt: React.MouseEvent) {
@@ -98,14 +90,8 @@ export default function Place(props: PlaceProps) {
     }
 
     let fill = "#FFFFFF";
-    if (metaModel.isSuper()) {
-        fill = "#1c1c1d";
-    }
 
     function TextLabel() {
-        if (metaModel.isSuper()) {
-            return <text id={props.id + '[label]'} x={p.x - 18} y={p.y - 20}></text>
-        }
         return <text id={props.id + '[label]'} x={p.x - 18} y={p.y - 20}>{props.id}</text>
     }
 

@@ -1,6 +1,7 @@
 .signalContainer {
     display: flex;
     flex-direction: column;
+    max-width: 98%;
     border: 1px solid #ddd;
 }
 

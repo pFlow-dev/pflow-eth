@@ -14,7 +14,7 @@ type ModelApiResponse struct {
 	Error   string      `json:"error,omitempty"`
 }
 
-func (s Server) ModelContextHandler(w http.ResponseWriter, r *http.Request) {
+func (s Service) ContextHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	queryValues := r.URL.Query()

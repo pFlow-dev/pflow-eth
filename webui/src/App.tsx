@@ -1,16 +1,12 @@
-import React, {Fragment} from 'react';
-import './App.css';
+import React from 'react';
+import styles from './App.module.css';
 import StateMachine from "./components/StateMachine";
 
 function App() {
-    //return <StateMachine/>;
-
     return (
-        <Fragment>
-            <div className="appContainer">
-                <StateMachine/>
-            </div>
-        </Fragment>
+        <div className={styles.appContainer}>
+            <StateMachine/>
+        </div>
     );
 }
 

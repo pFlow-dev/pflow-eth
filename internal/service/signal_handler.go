@@ -51,7 +51,7 @@ func signTransaction(from common.Address, tx *types.Transaction) (*types.Transac
 	return signedTx, nil
 }
 
-func (s *Server) Signal(ctx context.Context, action uint8, scalar *big.Int) (*SignalResponse, error) {
+func (s *Service) Signal(ctx context.Context, action uint8, scalar *big.Int) (*SignalResponse, error) {
 	contractAddress := common.HexToAddress(contractAddress)
 	metamodelInstance, err := metamodel.NewMetamodel(contractAddress, s.Client)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *Server) Signal(ctx context.Context, action uint8, scalar *big.Int) (*Si
 	return res, nil
 }
 
-func (s *Server) SignalMany(ctx context.Context, actions []uint8, scalars []*big.Int, nonce *big.Int) (*SignalResponse, error) {
+func (s *Service) SignalMany(ctx context.Context, actions []uint8, scalars []*big.Int, nonce *big.Int) (*SignalResponse, error) {
 	var res = &SignalResponse{}
 
 	if len(actions) != len(scalars) {
@@ -163,7 +163,7 @@ type ErrorResponse struct {
 	Nonce int64  `json:"nonce,omitempty"`
 }
 
-func (s *Server) SignalHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) SignalHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	queryValues := r.URL.Query()

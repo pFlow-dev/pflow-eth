@@ -48,7 +48,9 @@ library Model {
 
 interface ModelInterface {
     function context() external returns (Model.Context memory);
+
     function signal(uint8 action, uint256 scalar) external;
+
     function signalMany(uint8[] calldata actions, uint256[] calldata scalars) external;
 }
 
@@ -102,7 +104,7 @@ abstract contract Metamodel is PflowDSL, ModelInterface {
 
     // isInhibited is a hook for derived contracts to implement transition guards
     function isInhibited(Model.Transition memory t) internal view virtual returns (bool);
-    
+
     // hasPermission implements an ACL for transitions based on user roles
     function hasPermission(Model.Transition memory t) internal view virtual returns (bool);
 
@@ -182,11 +184,11 @@ contract MyStateMachine is MyModel {
         }
         return false;
     }
-    
+
     function hasPermission(Model.Transition memory t) internal view override returns (bool) {
         return t.role < uint8(Roles.HALT);
     }
-    
+
     function transform(uint8 i, Model.Transition memory t, uint256 scalar) internal override {
         require(scalar > 0, "invalid scalar");
         if (t.delta[i] != 0) {

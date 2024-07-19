@@ -1,6 +1,4 @@
-import * as mm from "./index";
-
-type Version = "v0" | "v1";
+export type Version = "v0" | "v1";
 const version: Version = "v0";
 
 export interface RoleDef {
@@ -143,7 +141,7 @@ export interface Model {
 }
 
 export type ModelDeclaration = {
-    modelType: ModelType;
+    modelType: ModelType.petriNet | ModelType.elementary | ModelType.workflow;
     version: Version;
     places: {
         [key: string]: { offset: number; initial?: number; capacity?: number; x: number; y: number };
@@ -664,14 +662,14 @@ export function newModel({declaration, type}: ModelOptions): Model {
         }
 
         if (source.metaType === "place" && target.metaType === "transition") {
-            const place = source as mm.Place;
-            const transition = target as mm.Transition;
+            const place = source as Place;
+            const transition = target as Transition;
             transition.delta[place.offset] = 0;
             target.guards.delete(place.label);
         }
         if (source.metaType === "transition" && target.metaType === "place") {
-            const place = target as mm.Place;
-            const transition = source as mm.Transition;
+            const place = target as Place;
+            const transition = source as Transition;
             transition.delta[place.offset] = 0;
             source.guards.delete(place.label);
         }
@@ -865,7 +863,7 @@ export function newModel({declaration, type}: ModelOptions): Model {
             role: {label: "default"},
             delta: emptyVector(),
             position: {x: coords.x, y: coords.y},
-            guards: new Map<string, mm.Guard>(),
+            guards: new Map<string, Guard>(),
             allowReentry: false,
         });
         return true;

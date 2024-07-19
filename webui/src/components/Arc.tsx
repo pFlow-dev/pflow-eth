@@ -73,10 +73,6 @@ export default function Arc(props: ArcProps) {
     }
 
     function stroke() {
-
-        if (metaModel.isSuper()) {
-            return "#EBFF00";
-        }
         return '#000000';
     }
 
@@ -86,14 +82,11 @@ export default function Arc(props: ArcProps) {
 
     let weight = "  ";
 
-    if (metaModel.m.def.type === "petriNet") {
+    if (metaModel.petriNet.def.type === "petriNet") {
         weight = `${Math.abs(arc.weight)}`
     }
 
     function TextLabel() {
-        if (metaModel.isSuper()) {
-            return <text id={props.id + '[label]'} x={midX - offsetX} y={midY + offsetY}></text>
-        }
         return <text id={props.id + '[label]'} x={midX - offsetX} y={midY + offsetY}>{weight}</text>
     }
 

@@ -14,14 +14,27 @@ interface SignalData {
     };
 }
 
-function Signal() {
+type SignalProps = {
+    metaModel: any;
+}
+
+function Signal({metaModel}: SignalProps) {
     const [signalData, setSignalData] = useState<SignalData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [action, setAction] = useState<string>('');
     const [scalar, setScalar] = useState<string>('');
 
     useEffect(() => {
-        fetchData('/v0/signal?action=2,2&scalar=1,3');
+        setSignalData({
+            nonce: 0,
+            response: {
+                contract: '',
+                event_log: [],
+                sender: '',
+                transaction_hash: ''
+            }
+        });
+        setIsLoading(false);
     }, []);
 
     const handleActionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,26 +45,9 @@ function Signal() {
         setScalar(e.target.value);
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        metaModel.loadFromContract();
         e.preventDefault();
-        const url = `/v0/signal?action=${action}&scalar=${scalar}`;
-        fetchData(url);
-    };
-
-    const fetchData = async (url: string) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data: SignalData = await response.json();
-            setSignalData(data);
-        } catch (error) {
-            console.error('Error fetching signal data:', error);
-        } finally {
-            setIsLoading(false);
-        }
     };
 
     if (isLoading) {

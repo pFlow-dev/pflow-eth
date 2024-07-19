@@ -1,47 +1,48 @@
 import React, {useEffect, useState} from 'react';
-import Model from "./Model";
+import PetriNet from "./PetriNet";
 import ControlPanel from "./ControlPanel"; // Import ControlPanel component
 import {MetaModel} from "../lib/pflow";
 import styles from './StateMachine.module.css';
 import Signal from "./Signal";
 import TransitionList from "./Transactions";
-import NodeStatus from "./NodeStatus";
+import PingStatus from "./PingStatus";
+import {ModelContext} from "../lib/pflow/api";
+import ConnectWallet from "./ConnectWallet";
 
-interface ModelData {
-    // Assuming a placeholder structure for ModelData, adjust according to actual data structure
-    details: any;
-}
+// Deployed MyStateMachine
+const defaultAddress = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
 
 function StateMachine() {
-    const [modelData, setModelData] = useState<ModelData | null>(null);
+    const [modelData, setModelData] = useState<ModelContext | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [address, setAddress] = useState<string>('0x5fbdb2315678afecb367f032d93f642f64180aa3');
+    const [address, setAddress] = useState<string>(defaultAddress);
     const [activeTab, setActiveTab] = useState<string>('model');
 
+    const metaModel = new MetaModel({address: defaultAddress});
+
     useEffect(() => {
-        const url = `/v0/model?addr=${address}`;
-        fetchData(url);
+        fetchData();
     }, []);
 
     const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setAddress(e.target.value);
+        metaModel.loadFromContract().then(() => {
+            // REVIEW: this is a web3 call
+            // TODO: app should support usage without a backend
+            setAddress(e.target.value);
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const url = `/v0/model?addr=${address}`;
-        fetchData(url);
+        await fetchData();
     };
 
-    const fetchData = async (url: string) => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data: ModelData = await response.json();
-            setModelData(data);
+            const modelCtx: ModelContext = await metaModel.getModelFromServer();
+            // console.log({modelCtx});
+            setModelData(modelCtx);
         } catch (error) {
             console.error('Error fetching model data:', error);
         } finally {
@@ -61,27 +62,26 @@ function StateMachine() {
         return <div>No data available</div>;
     }
 
-    const metaModel = new MetaModel({editor: true});
 
     return (
-        <div className={styles.stateMachinContainer}>
-            <NodeStatus/>
+        <div className={styles.stateMachineContainer}>
+            <PingStatus metaModel={metaModel}/>
             <div className={styles.tabs}>
                 <button onClick={() => handleTabChange('model')}>Model</button>
                 <button onClick={() => handleTabChange('signal')}>Signal</button>
                 <button onClick={() => handleTabChange('transitionList')}>Transitions</button>
                 <button onClick={() => handleTabChange('controlPanel')}>Control Panel</button>
-                {/* Add ControlPanel tab button */}
+                <ConnectWallet metaModel={metaModel}/>
             </div>
             <form onSubmit={handleSubmit}>
                 <input type="text" size={46} value={address} onChange={handleAddressChange} placeholder="Address"/>
                 <button type="submit">Load Address</button>
             </form>
-            {activeTab === 'model' && <Model metaModel={metaModel}/>}
-            {activeTab === 'signal' && <Signal/>}
+            {activeTab === 'model' && <PetriNet metaModel={metaModel}/>}
+            {activeTab === 'signal' && <Signal metaModel={metaModel}/>}
             {activeTab === 'transitionList' && <TransitionList/>}
             {activeTab === 'controlPanel' &&
-                <ControlPanel/>} {/* Render ControlPanel component when its tab is active */}
+                <ControlPanel/>}
         </div>
     );
 }

@@ -1,12 +1,13 @@
-CREATE OR REPLACE FUNCTION node_sync() RETURNS jsonb AS $$
+CREATE OR REPLACE FUNCTION node_sync() RETURNS jsonb AS
+$$
 DECLARE
     max_block_number_before_sync INT;
-    max_block_number_after_sync INT;
-    highest_sequence INT;
-    db_start_time TIMESTAMP;
-    db_end_time TIMESTAMP;
-    db_duration INTERVAL;
-    unconfirmed_tx_count INT;
+    max_block_number_after_sync  INT;
+    highest_sequence             INT;
+    db_start_time                TIMESTAMP;
+    db_end_time                  TIMESTAMP;
+    db_duration                  INTERVAL;
+    unconfirmed_tx_count         INT;
 BEGIN
     -- Capture start time
     SELECT current_timestamp INTO db_start_time;
@@ -34,13 +35,13 @@ BEGIN
 
     -- Return JSON object with the max block numbers, highest sequence, and DB operation time
     RETURN jsonb_build_object(
-        'unconfirmed_tx', unconfirmed_tx_count,
-        'sequence', highest_sequence,
-        'block', max_block_number_after_sync,
-        'blocks_added', max_block_number_after_sync - max_block_number_before_sync,
-        'time', db_start_time,
-        'job_timer', db_end_time - db_start_time
-    );
+            'unconfirmed_tx', unconfirmed_tx_count,
+            'sequence', highest_sequence,
+            'block', max_block_number_after_sync,
+            'blocks_added', max_block_number_after_sync - max_block_number_before_sync,
+            'time', db_start_time,
+            'job_timer', db_end_time - db_start_time
+           );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -49,14 +50,21 @@ $$ LANGUAGE plpgsql;
 -- schedule runs every minute
 -- SELECT cron.schedule('*/1 * * * * *', 'SELECT refresh_and_insert()');
 
-CREATE OR REPLACE FUNCTION wrap_node_sync() RETURNS TABLE(sync_data jsonb) AS $$
+CREATE OR REPLACE FUNCTION wrap_node_sync()
+    RETURNS TABLE
+            (
+                sync_data jsonb
+            )
+AS
+$$
 BEGIN
     -- Notify any listening clients that the node_sync has completed
-    NOTIFY node_sync_channel, 'Node sync completed';
+    EXECUTE pg_notify('node_sync_channel', config('schema'));
     RETURN QUERY SELECT node_sync() AS sync_data;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP MATERIALIZED VIEW node_sync_data_view;
+-- DROP MATERIALIZED VIEW node_sync_data_view;
 CREATE MATERIALIZED VIEW node_sync_data_view AS
- SELECT * FROM wrap_node_sync();
+SELECT *
+FROM wrap_node_sync();

@@ -2,11 +2,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
+    width: 80%;
     min-height: 80vh;
 }
 
-.stateMachinContainer {
+.stateMachineContainer {
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -14,6 +14,6 @@
     padding: 20px;
 }
 
-.stateMachinContainer button {
+.stateMachineContainer button {
     margin: 10px;
 }

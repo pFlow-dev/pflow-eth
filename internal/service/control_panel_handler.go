@@ -11,12 +11,12 @@ type ActionResponse struct {
 	Result string `json:"result"`
 }
 
-func (s *Server) ResetDb() bool {
+func (s *Service) ResetDb() bool {
 	_, err := s.NodeDb.Exec("SELECT truncate_node_data()")
 	return err == nil
 }
 
-func (s *Server) InsertBlockNumber(blockNumber int) bool {
+func (s *Service) InsertBlockNumber(blockNumber int) bool {
 	stmt, err := s.NodeDb.Prepare("INSERT INTO block_numbers (block_number) VALUES ($1)")
 	if err != nil {
 		return false
@@ -26,7 +26,7 @@ func (s *Server) InsertBlockNumber(blockNumber int) bool {
 	return err == nil
 }
 
-func (s Server) NodeControlHandler(w http.ResponseWriter, r *http.Request) {
+func (s Service) ControlPanelHandler(w http.ResponseWriter, r *http.Request) {
 	action := r.URL.Query().Get("cmd")
 	var result string
 
@@ -44,7 +44,7 @@ func (s Server) NodeControlHandler(w http.ResponseWriter, r *http.Request) {
 			result = "Failed to init block numbers"
 		}
 	case "sync":
-		if s.SyncNodeWithBlockchain() {
+		if s.syncNodeWithBlockchain(s.getNetwork(r.Host)) {
 			result = "Synced with blockchain"
 		} else {
 			result = "Failed to sync with blockchain"
