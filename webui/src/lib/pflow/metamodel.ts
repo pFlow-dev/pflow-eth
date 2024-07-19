@@ -86,20 +86,33 @@ export class MetaModel {
         console.log({context})
     }
 
-    async signal(action: string, scalar: string): Promise<any> {
-        if (!this.stateMachine) {
-            return {error: 'state machine contract not initialized'};
-        }
-        return this.contract()
-            .then((sm) => {
-                    return sm.signal(toBigInt(action), toBigInt(scalar))
-            })
-            .then((tx) => {
-                return tx.wait()
-            }).catch((err) => {
-                return err
-            })
+async signal(action: string, scalar: string): Promise<any> {
+    if (!this.stateMachine) {
+        return {error: 'state machine contract not initialized'};
     }
+
+    try {
+        const contract = await this.contract();
+        let tx;
+
+        if (action.includes(',') || scalar.includes(',')) {
+            const actionsArray = action.split(',').map(a => toBigInt(a.trim()));
+            const scalarsArray = scalar.split(',').map(s => toBigInt(s.trim()));
+
+            if (actionsArray.length !== scalarsArray.length) {
+                throw new Error('Actions and scalars arrays must be of the same length');
+            }
+
+            tx = await contract.signalMany(actionsArray, scalarsArray);
+        } else {
+            tx = await contract.signal(toBigInt(action), toBigInt(scalar));
+        }
+
+        return await tx.wait();
+    } catch (err) {
+        return err;
+    }
+}
 
     async loadFromContract() {
         if (!this.stateMachine) {
