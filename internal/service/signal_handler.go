@@ -164,6 +164,11 @@ type ErrorResponse struct {
 }
 
 func (s *Service) SignalHandler(w http.ResponseWriter, r *http.Request) {
+	if s.getNetwork(r.Host) != "hardhat" {
+		respondWithError(w, http.StatusBadRequest, "Signal Function is only available on hardhat network")
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	queryValues := r.URL.Query()

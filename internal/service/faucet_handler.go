@@ -20,6 +20,11 @@ func respondWithError(w http.ResponseWriter, statusCode int, message string) {
 }
 
 func (s *Service) FaucetHandler(w http.ResponseWriter, r *http.Request) {
+	if s.getNetwork(r.Host) != "hardhat" {
+		respondWithError(w, http.StatusBadRequest, "Faucet is only available on hardhat network")
+		return
+	}
+
 	addr := r.URL.Query().Get("addr")
 	if !common.IsHexAddress(addr) {
 		respondWithError(w, http.StatusBadRequest, "Invalid address")

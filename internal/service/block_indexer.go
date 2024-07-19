@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const notify_channel = "node_sync_channel"
+
 func (s *Service) getNotificationListener() *pq.Listener {
 	_, err := sql.Open("postgres", config.DbConn)
 	if err != nil {
@@ -22,7 +24,6 @@ func (s *Service) getNotificationListener() *pq.Listener {
 		}
 	}
 
-	notify_channel := "node_sync_channel"
 	listener := pq.NewListener(config.DbConn, 10*time.Second, time.Minute, reportProblem)
 	err = listener.Listen(notify_channel)
 	if err != nil {

@@ -158,13 +158,18 @@ func (s *Service) insertSequence(nextSeq int64) (int64, error) {
 func (s *Service) syncNodeWithBlockchain(schema string) bool {
 	s.setSearchPath(schema)
 	_, err := s.NodeDb.Exec("REFRESH MATERIALIZED VIEW node_sync_data_view")
-	if err != nil {
+	ok := err == nil
+	s.Event("refresh_materialized_view", map[string]interface{}{
+		"schema": schema,
+		"ok":     ok,
+	})
+
+	if !ok {
 		log.Printf("Error refreshing materialized view node_sync_data_view: %v", err)
-		return false
 	} else {
 		log.Println("Materialized view node_sync_data_view refreshed successfully.")
-		return true
 	}
+	return ok
 }
 
 func (s *Service) confirmSentTransactions(schema string) (ok bool) {
@@ -210,19 +215,18 @@ func (s *Service) importNextTransaction(schema string) (ok bool) {
 	return false
 }
 
-func (s *Service) computeTransactionStates(schema string) (ok bool) {
+func (s *Service) computeTransactionStates(schema string) {
 	s.setSearchPath(schema)
-	// REVIEW: test this function
 	sqlStatement := `SELECT sequence, transaction_hash FROM transaction_states WHERE state IS NULL order by sequence asc`
 
-	// Execute the query
 	rows, err := s.NodeDb.Query(sqlStatement)
 	if err != nil {
 		log.Printf("Error querying null state transactions: %v", err)
-		return false
+		return
 	}
 	defer rows.Close()
 
+	var count int // Step 1: Initialize counter
 	for rows.Next() {
 		var sequence int64
 		var transactionHash string
@@ -230,17 +234,25 @@ func (s *Service) computeTransactionStates(schema string) (ok bool) {
 		err := rows.Scan(&sequence, &transactionHash)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
-			return false
+			return
 		}
+		count++ // Step 2: Increment counter
 		log.Printf("Found null state transaction: sequence %d, hash %s", sequence, transactionHash)
 	}
 
 	if err = rows.Err(); err != nil {
 		log.Printf("Error iterating rows: %v", err)
-		return false
+		return
 	}
 
-	return true
+	if count > 0 {
+		s.Event("compute_transaction_states_count", map[string]interface{}{
+			"schema": schema,
+			"count":  count,
+		})
+	}
+
+	return
 }
 
 func (s Service) getNetwork(host string) string {

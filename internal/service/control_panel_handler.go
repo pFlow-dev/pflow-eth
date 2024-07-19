@@ -27,6 +27,10 @@ func (s *Service) InsertBlockNumber(blockNumber int) bool {
 }
 
 func (s Service) ControlPanelHandler(w http.ResponseWriter, r *http.Request) {
+	if s.getNetwork(r.Host) != "hardhat" {
+		respondWithError(w, http.StatusBadRequest, "ControlPanel is only available on hardhat network")
+		return
+	}
 	action := r.URL.Query().Get("cmd")
 	var result string
 
