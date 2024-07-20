@@ -49,6 +49,7 @@ export class MetaModel {
     }
 
     async contract(): Promise<MyStateMachine> {
+        // REVIEW can this happen during construction instead?
         return this.stateMachine.connect(await this.provider.getSigner());
     }
 

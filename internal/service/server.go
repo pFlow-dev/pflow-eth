@@ -125,6 +125,7 @@ func (s Service) apiRoutes() {
 	s.Router.HandleFunc("/v0/model", s.ContextHandler)
 	s.Router.HandleFunc("/v0/signal", s.SignalHandler)
 	s.Router.HandleFunc("/v0/faucet", s.FaucetHandler)
+	s.Router.HandleFunc("/v0/raw_tx", s.RawTransactionHandler)
 }
 
 func (s *Service) getHightestSequence() (highestSequence int64) {

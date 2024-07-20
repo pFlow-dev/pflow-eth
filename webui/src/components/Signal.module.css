@@ -3,6 +3,7 @@
     flex-direction: column;
     max-width: 98%;
     border: 1px solid #ddd;
+    overflow: scroll;
 }
 
 .signalForm {

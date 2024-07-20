@@ -4,8 +4,6 @@
 
 .transactionTable tbody {
     display: table-row-group; /* Default value to keep table layout */
-    height: 500px; /* Adjust this value based on your row height to fit approximately 10 rows */
-    overflow-y: auto;
 }
 
 .transactionTable th, .transactionTable td {
