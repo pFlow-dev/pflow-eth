@@ -62,8 +62,6 @@ func (s *Service) RawTransactionHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: record the transaction in the database
-
 	response := map[string]string{"txHash": txHash}
 	json.NewEncoder(w).Encode(response)
 }

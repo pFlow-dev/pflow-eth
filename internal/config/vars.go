@@ -15,6 +15,7 @@ var (
 	Host            = "127.0.0.1"                                                      // Default host, can be overridden by HOST env var
 	NewRelicLicense string                                                             // New Relic License Key for monitoring, set via ldflags
 	NewRelicApp     string                                                             // New Relic Application Name, set via ldflags
+	Address         string                                                             // Address for the faucet, set via ldflags
 )
 
 func init() {
@@ -37,5 +38,9 @@ func init() {
 	// Override Host if HOST environment variable is set.
 	if listenHost, hostSet := os.LookupEnv("HOST"); hostSet {
 		Host = listenHost
+	}
+	Address = os.Getenv("ADDRESS")
+	if Address == "" {
+		Address = "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 	}
 }
