@@ -1,5 +1,5 @@
-import React from 'react';
-import {MetaModel} from "../lib/pflow";
+import React from "react";
+import {MetaModel} from "../../lib/pflow";
 
 interface PlaceProps {
     id: string;
@@ -23,7 +23,7 @@ export default function Place(props: PlaceProps) {
         let tokenColor = "#0000007x";
 
         if (tokens === 0) {
-            return; // don't show zeros
+            return; // don"t show zeros
         }
         if (tokens === 1) {
             return (<circle cx={p.x} cy={p.y} r="2" id={props.id + "_tokens"} fill={tokenColor} stroke={tokenColor}
@@ -92,7 +92,7 @@ export default function Place(props: PlaceProps) {
     let fill = "#FFFFFF";
 
     function TextLabel() {
-        return <text id={props.id + '[label]'} x={p.x - 18} y={p.y - 20}>{props.id}</text>
+        return <text id={props.id + "[label]"} x={p.x - 18} y={p.y - 20}>{props.id}</text>
     }
 
     return (
@@ -100,7 +100,7 @@ export default function Place(props: PlaceProps) {
             onClick={onClick}
             onContextMenu={onAltClick}>
 
-            <circle id={props.id + '_handle'} cx={p.x} cy={p.y} r={getHandleWidth()} fill="transparent"
+            <circle id={props.id + "_handle"} cx={p.x} cy={p.y} r={getHandleWidth()} fill="transparent"
                     stroke="transparent"/>
             <circle cx={p.x} cy={p.y} r="16" id={props.id}
                     strokeWidth="1.5" fill={fill} stroke={getStroke()} orient="0"

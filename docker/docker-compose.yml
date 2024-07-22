@@ -9,7 +9,7 @@ services:
     restart: on-failure
     volumes:
       - ./volumes/db/data:/var/lib/postgresql/data:Z
-  app:
+  dapp:
     build:
       context: ../
       dockerfile: Dockerfile

@@ -1,30 +1,16 @@
-import React, {useEffect, useState} from 'react';
-import styles from './Signal.module.css';
+import React, {useEffect, useState} from "react";
+import styles from "./Signal.module.css";
 import {MetaModel} from "../lib/pflow";
-import {ContractTransactionResponse} from "ethers";
-
-interface SignalData {
-    nonce: number;
-    response: {
-        contract: string;
-        event_log: Array<{
-            data: string;
-            event: string[];
-        }>;
-        sender: string;
-        transaction_hash: string;
-    };
-}
 
 type SignalProps = {
     metaModel: MetaModel;
 }
 
-function Signal({metaModel}: SignalProps) {
+export default function Signal({metaModel}: SignalProps) {
     const [signalData, setSignalData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [action, setAction] = useState<string>('');
-    const [scalar, setScalar] = useState<string>('');
+    const [action, setAction] = useState<string>("");
+    const [scalar, setScalar] = useState<string>("");
 
     useEffect(() => {
         setSignalData( // fake value
@@ -104,5 +90,3 @@ function Signal({metaModel}: SignalProps) {
         </div>
     );
 }
-
-export default Signal;

@@ -12,14 +12,6 @@ CREATE TABLE transactions
 );
 CREATE INDEX idx_transactions_transaction_hash ON transactions (transaction_hash);
 
-CREATE TABLE transaction_states
-(
-    sequence         INT PRIMARY KEY,
-    transaction_hash TEXT,
-    state            JSONB
-);
-CREATE INDEX idx_transaction_states_transaction_hash ON transaction_states (transaction_hash);
-
 CREATE TABLE sent_transactions
 (
     id               INT PRIMARY KEY,

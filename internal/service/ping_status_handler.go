@@ -16,7 +16,7 @@ func getBuild() string {
 		hexString[0:8], hexString[8:12], hexString[12:16], hexString[16:20], hexString[20:32])
 }
 
-func (s Service) SyncStatsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) SyncStatsHandler(w http.ResponseWriter, r *http.Request) {
 	s.setSearchPathForRequest(r)
 
 	query := `SELECT sync_data FROM node_sync_data_view LIMIT 1;`
@@ -45,5 +45,7 @@ func (s Service) SyncStatsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status["build"] = getBuild()
+	// add addressHeights
+	status["height"] = s.addressHeights
 	err = json.NewEncoder(w).Encode(status)
 }

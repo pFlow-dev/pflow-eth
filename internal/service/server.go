@@ -5,12 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	rice "github.com/GeertJohan/go.rice"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/logWriter"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/pflow-dev/pflow-eth/internal/config"
+	"github.com/pflow-dev/pflow-eth/metamodel"
 	"html/template"
 	"log"
 	"net/http"
@@ -28,6 +30,7 @@ type Service struct {
 	applicationPage *template.Template
 	apm             *newrelic.Application
 	cancelFunc      context.CancelFunc
+	addressHeights  map[common.Address]uint64
 }
 
 type Server interface {
@@ -36,7 +39,8 @@ type Server interface {
 
 func New() Server {
 	s := &Service{
-		Router: mux.NewRouter(),
+		Router:         mux.NewRouter(),
+		addressHeights: map[common.Address]uint64{},
 	}
 	var err error
 	s.NodeDb, err = sql.Open("postgres", config.DbConn)
@@ -118,7 +122,7 @@ func (s *Service) Serve(box *rice.Box) {
 	}
 }
 
-func (s Service) apiRoutes() {
+func (s *Service) apiRoutes() {
 	s.Router.HandleFunc("/v0/ping", s.SyncStatsHandler)
 	s.Router.HandleFunc("/v0/control", s.ControlPanelHandler)
 	s.Router.HandleFunc("/v0/transactions", s.TransactionsHandler)
@@ -129,46 +133,29 @@ func (s Service) apiRoutes() {
 }
 
 func (s *Service) getHightestSequence() (highestSequence int64) {
-	err := s.NodeDb.QueryRow("SELECT MAX(sequence) FROM transaction_states").Scan(&highestSequence)
+	err := s.NodeDb.QueryRow("SELECT MAX(sequence) FROM transaction_logs_view").Scan(&highestSequence)
 	if err != nil {
 		log.Printf("Error finding highest sequence: %v", err)
 		return -1
 	}
 	return highestSequence
 }
-
-func (s *Service) insertSequence(nextSeq int64) (int64, error) {
-	sqlStatement := `
-    INSERT INTO transaction_states (sequence, transaction_hash, state)
-    SELECT sequence, transaction_hash, NULL
-    FROM (
-        SELECT sequence, transaction_hash
-        FROM transaction_log_view
-        WHERE sequence = {{}} 
-    ) AS next_sequence
-    `
-
-	result, err := s.NodeDb.Exec(sqlStatement, nextSeq)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.RowsAffected()
-}
-
-func (s *Service) syncNodeWithBlockchain(schema string) bool {
+func (s *Service) refreshDataView(schema string) bool {
 	s.setSearchPath(schema)
 	_, err := s.NodeDb.Exec("REFRESH MATERIALIZED VIEW node_sync_data_view")
 	ok := err == nil
+	return ok
+}
+
+func (s *Service) syncNodeWithBlockchain(schema string) bool {
+	ok := s.refreshDataView(schema)
 	s.Event("refresh_materialized_view", map[string]interface{}{
 		"schema": schema,
 		"ok":     ok,
 	})
 
 	if !ok {
-		log.Printf("Error refreshing materialized view node_sync_data_view: %v", err)
-	} else {
-		log.Println("Materialized view node_sync_data_view refreshed successfully.")
+		log.Println("Error refreshing materialized view node_sync_data_view")
 	}
 	return ok
 }
@@ -194,69 +181,7 @@ func (s *Service) confirmSentTransactions(schema string) (ok bool) {
 	return true
 }
 
-func (s *Service) importNextTransaction(schema string) (ok bool) {
-	s.setSearchPath(schema)
-	highestSequence := s.getHightestSequence()
-	if highestSequence < 0 {
-		return false
-	}
-	nextSeq := highestSequence + 1
-	rows, err := s.insertSequence(nextSeq)
-	if err != nil {
-		log.Printf("Error inserting sequence %d: %v", nextSeq, err)
-		return false
-	}
-	if rows > 0 {
-		s.Event("sequence", map[string]interface{}{
-			"sequence": nextSeq,
-		})
-		log.Printf("Inserted sequence %d", nextSeq)
-		return true
-	}
-	return false
-}
-
-func (s *Service) computeTransactionStates(schema string) {
-	s.setSearchPath(schema)
-	sqlStatement := `SELECT sequence, transaction_hash FROM transaction_states WHERE state IS NULL order by sequence asc`
-
-	rows, err := s.NodeDb.Query(sqlStatement)
-	if err != nil {
-		log.Printf("Error querying null state transactions: %v", err)
-		return
-	}
-	defer rows.Close()
-
-	var count int // Step 1: Initialize counter
-	for rows.Next() {
-		var sequence int64
-		var transactionHash string
-
-		err := rows.Scan(&sequence, &transactionHash)
-		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return
-		}
-		count++ // Step 2: Increment counter
-		log.Printf("Found null state transaction: sequence %d, hash %s", sequence, transactionHash)
-	}
-
-	if err = rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return
-	}
-
-	if count > 0 {
-		s.Event("compute_transaction_states_count", map[string]interface{}{
-			"schema": schema,
-			"count":  count,
-		})
-	}
-
-	return
-}
-
-func (s Service) getNetwork(host string) string {
+func (s *Service) getNetwork(host string) string {
 	if strings.HasPrefix(host, "localhost") || strings.HasPrefix(host, "127.0.0.1") {
 		return "hardhat"
 	}
@@ -269,16 +194,34 @@ func (s Service) getNetwork(host string) string {
 	return "public"
 }
 
-func (s Service) setSearchPathForRequest(r *http.Request) {
+func (s *Service) setSearchPathForRequest(r *http.Request) {
 	host := r.Host
 	schema := s.getNetwork(host)
 	// fmt.Printf("Setting search path to %s => %s\n", host, schema)
 	s.setSearchPath(schema)
 }
 
-func (s Service) setSearchPath(schema string) {
+func (s *Service) setSearchPath(schema string) {
 	_, err := s.NodeDb.Exec("SET search_path TO " + schema)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (s *Service) getContractSequence() int64 {
+	address := common.HexToAddress(config.Address)
+	contract, _ := metamodel.NewMetamodel(address, s.Client)
+	res, err := contract.Sequence(nil)
+	if err != nil {
+		return -1
+	}
+	return res.Int64()
+}
+
+func (s *Service) getLatestBlockNumber() int64 {
+	header, err := s.Client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return -1
+	}
+	return header.Number.Int64()
 }

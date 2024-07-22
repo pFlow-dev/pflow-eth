@@ -7,8 +7,8 @@ import (
 
 // Global variables, set at build time with ldflags or dynamically via environment variables.
 var (
-	JsBuild         = "51c9bf03"                                                       // Update to match the path ./public/p/static/js/main.<JsBuild>.js
-	CssBuild        = "16b9238e"                                                       // Update to match the path ./public/p/static/css/main.<CssBuild>.css
+	JsBuild         = "41682e86"                                                       // Update to match the path ./public/p/static/js/main.<JsBuild>.js
+	CssBuild        = "1b3b3d9c"                                                       // Update to match the path ./public/p/static/css/main.<CssBuild>.css
 	Endpoint        = "http://hardhat:8545"                                            // Default endpoint, can be overridden by ENDPOINT env var
 	DbConn          = "dbname=pflow user=pflow password=pflow sslmode=disable host=db" // Default DB connection string, can be overridden by DB_HOST env var
 	Port            = "8083"                                                           // Default port, can be overridden by PORT env var
@@ -28,6 +28,7 @@ func init() {
 	// Override Endpoint if ENDPOINT environment variable is set.
 	if endpoint := os.Getenv("ENDPOINT"); endpoint != "" {
 		Endpoint = endpoint
+		fmt.Printf("Endpoint set to %s\n", endpoint)
 	}
 
 	// Override Port if PORT environment variable is set.

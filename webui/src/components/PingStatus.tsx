@@ -1,12 +1,12 @@
-import React, {useEffect, useState} from 'react';
-import styles from './PingStatus.module.css';
+import React, {useEffect, useState} from "react";
+import styles from "./PingStatus.module.css";
 import {MetaModel, NodeStatus} from "../lib/pflow";
 
 type PingStatusProps = {
     metaModel: MetaModel;
 }
 
-function PingStatus({metaModel}: PingStatusProps) {
+export default function PingStatus({metaModel}: PingStatusProps) {
     const [nodeData, setNodeData] = useState<NodeStatus | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -17,7 +17,7 @@ function PingStatus({metaModel}: PingStatusProps) {
                 setNodeData(data);
             });
         } catch (error) {
-            console.error('Error fetching node data:', error);
+            console.error("Error fetching node data:", error);
         } finally {
             setIsLoading(false);
         }
@@ -75,5 +75,3 @@ function PingStatus({metaModel}: PingStatusProps) {
         </div>
     );
 }
-
-export default PingStatus;

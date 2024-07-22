@@ -6,31 +6,39 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/lib/pq"
 	"github.com/pflow-dev/pflow-eth/internal/config"
 	"github.com/pflow-dev/pflow-eth/metamodel"
-	"math/big"
 	"os"
+	"strings"
 	"time"
 )
 
 const notify_channel = "node_sync_channel"
 
+func convertToWebSocketURL(url string) string {
+	if strings.HasPrefix(url, "http://") {
+		return strings.Replace(url, "http://", "ws://", 1)
+	} else if strings.HasPrefix(url, "https://") {
+		return strings.Replace(url, "https://", "wss://", 1)
+	}
+	return url
+}
+
 func (s *Service) subscribeToBlockchainEvents(sink chan *metamodel.MetamodelSignaledEvent) (event.Subscription, error) {
 	address := common.HexToAddress(config.Address)
-	m, err := metamodel.NewMetamodel(address, s.Client)
+	client, dialErr := ethclient.Dial(convertToWebSocketURL(config.Endpoint))
+	if dialErr != nil {
+		return nil, dialErr
+	}
+	m, err := metamodel.NewMetamodel(address, client)
 	if err != nil {
 		panic(err)
 	}
 	opts := &bind.WatchOpts{Context: context.Background()}
-	scalars := []*big.Int{}
-	scalars = append(scalars, big.NewInt(0))
-	scalars = append(scalars, big.NewInt(2))
-	scalars = append(scalars, big.NewInt(1))
-
-	// REVIEW: can we listen to all events?
-	return m.WatchSignaledEvent(opts, sink, []uint8{0, 1}, []uint8{0, 1, 2, 3}, scalars)
+	return m.WatchSignaledEvent(opts, sink, nil, nil, nil)
 }
 
 func (s *Service) getNotificationListener() *pq.Listener {
@@ -55,6 +63,19 @@ func (s *Service) getNotificationListener() *pq.Listener {
 	return listener
 }
 
+func (s *Service) SignalEvent(evt *metamodel.MetamodelSignaledEvent) {
+	next := make(map[string]interface{})
+	next["sequence"] = evt.Sequence.Int64()
+	next["role"] = evt.Role
+	next["action"] = evt.ActionId
+	next["scalar"] = evt.Scalar.Int64()
+
+	next["address"] = evt.Raw.Address
+	next["block"] = evt.Raw.BlockNumber
+	next["tx"] = evt.Raw.TxHash
+	s.Event("signaled_event", next)
+}
+
 func (s *Service) runBlockIndexer(ctx context.Context, networks map[string]bool) {
 	s.Event("block_indexer_started", map[string]interface{}{
 		"pid":      os.Getpid(),
@@ -67,14 +88,37 @@ func (s *Service) runBlockIndexer(ctx context.Context, networks map[string]bool)
 
 	eventSub, subError := s.subscribeToBlockchainEvents(eventChannel)
 	if subError != nil {
-		fmt.Printf("event subscription disabled: %s", subError)
+		fmt.Printf("event_subscription disabled: %s\n", subError)
+	} else {
+		fmt.Printf("event_subscription: enabled\n")
 	}
 	start := time.Now()
+	highestSeq := int64(-1)
 
-	syncBlockchainNetworks := func() {
+	syncByBlocks := func() {
 		for schema, enabled := range networks {
 			if enabled {
 				s.syncNodeWithBlockchain(schema)
+			}
+		}
+	}
+	refreshDataView := func() {
+		for schema, enabled := range networks {
+			if enabled {
+				s.refreshDataView(schema)
+			}
+		}
+	}
+
+	insertBlock := func(address common.Address, blockNumber uint64) {
+		for schema, enabled := range networks {
+			if enabled {
+				// FIXME: also check if the address belongs to the schema
+				s.setSearchPath(schema)
+				if s.InsertBlockNumber(blockNumber) {
+					s.addressHeights[address] = blockNumber
+					refreshDataView()
+				}
 			}
 		}
 	}
@@ -92,22 +136,30 @@ func (s *Service) runBlockIndexer(ctx context.Context, networks map[string]bool)
 			os.Exit(0)
 		case notification := <-listener.Notify:
 			if schema := notification.Extra; networks[schema] == true {
-				fmt.Println("refresh notification from schema: " + schema)
 				s.confirmSentTransactions(schema)
-				for {
-					if !s.importNextTransaction(schema) {
-						break
-					}
-				}
-				s.computeTransactionStates(schema)
 			} else {
-				fmt.Println("notification from unknown schema: " + schema)
+				panic("notification from unknown schema: " + schema)
 			}
 		case <-ticker.C:
-			syncBlockchainNetworks()
+			onChainSequence := s.getContractSequence()
+			if highestSeq < 0 {
+				highestSeq = s.getHightestSequence()
+			}
+			if highestSeq != onChainSequence {
+				syncByBlocks()
+			}
 		case evt := <-eventChannel:
-			fmt.Printf("Received event: %v\n", evt)
-			syncBlockchainNetworks()
+			if highestSeq < 0 { // initialize from db
+				highestSeq = s.getHightestSequence()
+			}
+			insertBlock(evt.Raw.Address, evt.Raw.BlockNumber)
+			s.SignalEvent(evt)
+			if highestSeq+1 == evt.Sequence.Int64() {
+				highestSeq = evt.Sequence.Int64()
+			} else {
+				highestSeq = -1
+				syncByBlocks()
+			}
 		}
 	}
 }

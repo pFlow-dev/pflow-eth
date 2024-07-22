@@ -31,7 +31,7 @@ go-build:
 
 .PHONY: archive
 archive:
-	git archive --format=zip --output=pflow.$$(date -I).zip main
+	git archive --format=zip --output=pflow-eth.$$(date -I).zip main
 
 .PHONY: generate
 generate:

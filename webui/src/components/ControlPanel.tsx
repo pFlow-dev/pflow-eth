@@ -1,25 +1,25 @@
-import React, {useState} from 'react';
+import React, {useState} from "react";
 
-function ControlPanel() {
-    const [response, setResponse] = useState('');
+export default function ControlPanel() {
+    const [response, setResponse] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
     const sendControlCommand = async (action: string) => {
         setIsLoading(true);
-        setError('');
+        setError("");
         try {
             const response = await fetch(`/v0/control?cmd=${action}`, {
-                method: 'GET',
+                method: "GET",
             });
             const data = await response.json();
             if (response.ok) {
                 setResponse(data.result);
             } else {
-                setError(data.result || 'An error occurred');
+                setError(data.result || "An error occurred");
             }
         } catch (err) {
-            setError('Network error');
+            setError("Network error");
         } finally {
             setIsLoading(false);
         }
@@ -40,14 +40,12 @@ function ControlPanel() {
                     blockchain.
                 </li>
             </ul>
-            <button onClick={() => sendControlCommand('reset_db')}>Reset Database</button>
-            <button onClick={() => sendControlCommand('init_block_numbers')}>Initialize Block Numbers</button>
-            <button onClick={() => sendControlCommand('sync')}>Sync with Blockchain</button>
+            <button onClick={() => sendControlCommand("reset_db")}>Reset Database</button>
+            <button onClick={() => sendControlCommand("init_block_numbers")}>Initialize Block Numbers</button>
+            <button onClick={() => sendControlCommand("sync")}>Sync with Blockchain</button>
             {isLoading && <p>Loading...</p>}
             {response && <p>Response: {response}</p>}
             {error && <p>Error: {error}</p>}
         </div>
     );
 }
-
-export default ControlPanel;

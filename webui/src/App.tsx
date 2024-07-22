@@ -1,12 +1,9 @@
 import React from 'react';
-import styles from './App.module.css';
-import StateMachine from "./components/StateMachine";
+import PflowExplorer from "./components/PflowExplorer";
 
 function App() {
     return (
-        <div className={styles.appContainer}>
-            <StateMachine/>
-        </div>
+        <PflowExplorer/>
     );
 }
 

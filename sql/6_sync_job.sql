@@ -1,3 +1,28 @@
+
+
+CREATE OR REPLACE FUNCTION init_block_numbers_with_latest() RETURNS TEXT AS
+$$
+DECLARE
+    latest_block_number INT;
+    existing_count INT;
+BEGIN
+    -- Check if there are already entries in the block_numbers table
+    SELECT COUNT(*) INTO existing_count FROM block_numbers;
+    IF existing_count = 0 THEN
+        -- Get the latest block number from the blockchain
+        latest_block_number := get_latest_block_number();
+        -- Insert the latest block number into the block_numbers table
+        INSERT INTO block_numbers (block_number) VALUES (latest_block_number);
+        RETURN 'Latest block number initialized successfully.';
+    ELSE
+        RETURN 'Block numbers table is already initialized.';
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    -- Return error message in case of any exception
+    RETURN 'Failed to initialize block numbers table with latest block number: ' || SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION node_sync() RETURNS jsonb AS
 $$
 DECLARE
@@ -64,7 +89,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Initialize block_numbers table with the latest block number so we don't spend forever syncing
+SELECT init_block_numbers_with_latest();
+
 -- DROP MATERIALIZED VIEW node_sync_data_view;
+
+-- XXX this materialized view relies on the availability of the blockchain node XXX
 CREATE MATERIALIZED VIEW node_sync_data_view AS
 SELECT *
 FROM wrap_node_sync();

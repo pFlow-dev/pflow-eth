@@ -158,6 +158,76 @@ export type ModelDeclaration = {
     }[];
 };
 
+export interface FlowDSL {
+    place(label: string, initial: number, capacity: number, x: number, y: number): void
+    transition(label: string, role: number, x: number, y: number): void
+    arc(from: string, to: string, weight: number, inhibit?: boolean): void
+    guard(from: string, to: string, weight: number): void
+}
+
+export interface DeclarationArgs{
+    modelDsl: Dsl,
+    places: string[],
+    transitions: string[]
+}
+
+// use a model constructor with a fluent interface to construct a model
+export function FlowBuilder({modelDsl, places, transitions}: DeclarationArgs): FlowDSL {
+    const _pl: PlaceNode[] = []
+    const _tx: TxNode[] = [];
+
+    function arc( from: string, to: string, weight: number = 1, inhibit: boolean = false) {
+        let _from = places.indexOf(from);
+        let _from_place = true;
+        if (_from < 0) {
+            _from_place = false;
+            _from = transitions.indexOf(from);
+        }
+        let _to = places.indexOf(to);
+        if (_to < 0) {
+            _to = transitions.indexOf(to);
+        }
+
+        if (inhibit)  {
+            if (_from_place) {
+                _pl[_from].guard(weight, _tx[_to])
+            } else {
+                _tx[_from].guard(weight, _pl[_to])
+            }
+        } else {
+            if (_from_place) {
+                _pl[_from].tx(weight, _tx[_to])
+            } else {
+                _tx[_from].tx(weight, _pl[_to])
+            }
+        }
+    }
+
+    function guard( from: string, to: string, weight: number = 1) {
+        arc(from, to, weight, true)
+    }
+
+    function place(label: string, initial: number, capacity: number, x: number, y: number) {
+        const i = places.indexOf(label);
+        if (i < 0) {
+            throw new Error("place not found: " + label)
+        } else {
+            _pl[i] = modelDsl.cell(label, i, initial, {x, y })
+        }
+    }
+
+    function transition(label: string, role: number, x: number, y: number) {
+        const i = transitions.indexOf(label);
+        if (i < 0) {
+            throw new Error("transition not found: " + label)
+        } else {
+            _tx[i] = modelDsl.fn(label, modelDsl.role("role"+role), {x, y})
+        }
+    }
+
+    return {place, transition, arc, guard}
+}
+
 export interface ModelOptions {
     declaration?: DeclarationFunction | ModelDeclaration;
     type?: ModelType;

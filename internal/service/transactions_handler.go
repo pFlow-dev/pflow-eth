@@ -34,7 +34,7 @@ FROM
   transaction_logs_view
 `
 
-func (s Service) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
 	// consider using a transaction, or using a prefix w/ search_path
 	s.setSearchPathForRequest(r)
 	startStr := r.URL.Query().Get("start")

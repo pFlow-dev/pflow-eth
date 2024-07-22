@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {ethers} from 'ethers';
+import React, {useState} from "react";
+import {ethers} from "ethers";
 
 declare global {
     interface Window {
@@ -10,7 +10,7 @@ type ConnectWalletProps = {
     metaModel: any;
 }
 
-const ConnectWallet = ({metaModel}: ConnectWalletProps) => {
+export default function ConnectWallet({metaModel}: ConnectWalletProps) {
     const [connected, setConnected] = useState(false);
     const [walletAddress, setWalletAddress] = useState("");
 
@@ -30,8 +30,8 @@ const ConnectWallet = ({metaModel}: ConnectWalletProps) => {
 
     async function callFaucet() {
         if (walletAddress) {
-            const response = await fetch('/v0/faucet?addr=' + walletAddress, {
-                method: 'GET',
+            const response = await fetch("/v0/faucet?addr=" + walletAddress, {
+                method: "GET",
             });
             const data = await response.json();
             if (!response.ok) {
@@ -44,9 +44,9 @@ const ConnectWallet = ({metaModel}: ConnectWalletProps) => {
 
     return (
         <>
-            <div className='app'>
-                <div className='main'>
-                    <button className='btn' onClick={connectWallet}>
+            <div className="app">
+                <div className="main">
+                    <button className="btn" onClick={connectWallet}>
                         {connected ? "Disconnect Wallet" : "Connect Wallet"}
                     </button>
                     {walletAddress}
@@ -56,5 +56,3 @@ const ConnectWallet = ({metaModel}: ConnectWalletProps) => {
         </>
     );
 }
-
-export default ConnectWallet;

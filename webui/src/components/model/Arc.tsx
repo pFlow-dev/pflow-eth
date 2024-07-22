@@ -1,6 +1,6 @@
-import React from 'react';
-import {MetaModel} from "../lib/pflow";
-import * as mm from "../lib/pflow/model";
+import React from "react";
+import {MetaModel} from "../../lib/pflow";
+import * as mm from "../../lib/pflow/model";
 
 interface ArcProps {
     id: string;
@@ -66,14 +66,14 @@ export default function Arc(props: ArcProps) {
 
     function getMarker() {
         if (arc.inhibit) {
-            return 'url(#markerInhibit1)';
+            return "url(#markerInhibit1)";
         } else {
-            return 'url(#markerArrow1)';
+            return "url(#markerArrow1)";
         }
     }
 
     function stroke() {
-        return '#000000';
+        return "#000000";
     }
 
     const {
@@ -87,7 +87,7 @@ export default function Arc(props: ArcProps) {
     }
 
     function TextLabel() {
-        return <text id={props.id + '[label]'} x={midX - offsetX} y={midY + offsetY}>{weight}</text>
+        return <text id={props.id + "[label]"} x={midX - offsetX} y={midY + offsetY}>{weight}</text>
     }
 
     return (
@@ -101,7 +101,7 @@ export default function Arc(props: ArcProps) {
                 x2={x2} y2={y2}
             />
             <TextLabel/>
-            <circle id={props.id + '[handle]'}
+            <circle id={props.id + "[handle]"}
                     r={13} cx={midX} cy={midY} fill="transparent" stroke="transparent"
                     onClick={onClick}
             />

@@ -1,14 +1,13 @@
 import * as mm from "./model";
-import {ModelType, Version} from "./model";
+import {FlowBuilder, ModelDeclaration, ModelType, newModel, Version} from "./model";
 import {ethers, toBigInt} from "ethers";
 import {MyStateMachine, MyStateMachine__factory} from "../typechain-types";
 import {ModelContext} from "./api";
 
+
 const initialModel = mm.newModel({
-    declaration: (dsl: mm.Dsl) => {
-        // empty model
-    },
-    type: mm.ModelType.petriNet
+    type: mm.ModelType.petriNet,
+    declaration: () => {}
 });
 
 type ModelOptions = {
@@ -25,6 +24,18 @@ export interface NodeStatus {
     unconfirmed_tx: number;
     js_build: string;
     css_build: string;
+}
+
+const ScaleX = 80;
+const ScaleY = 80;
+const Margin = 22;
+
+function scaleX(x: number) {
+    return x * ScaleX;
+}
+
+function scaleY(y: number) {
+    return y * ScaleY + Margin;
 }
 
 export class MetaModel {
@@ -67,102 +78,134 @@ export class MetaModel {
         if (response.ok) {
             this.status = await response.json() as NodeStatus;
         }
-        // TODO: add hook here to detect changes in contract status so we can update the UI
         return this.status;
     }
 
-    async loadFromServer() {
-        const modelCtx = await this.getModelFromServer();
-        const {context} = modelCtx;
-        const {Places, Transitions} = context;
-        const def = {
-            version: "v0" as Version,
-            modelType: ModelType.petriNet,
-            places: {},
-            transitions: {},
-            arcs: []
+    async loadFromServer(): Promise<ModelDeclaration> {
+        return this.getModelFromServer().then((modelContext) => {
+            const ctx = modelContext.context;
+            this.petriNet = newModel({
+                declaration: (dsl: mm.Dsl) => {
+                    const places: string[] = []
+                    const transitions: string[] = []
+                    ctx.Places.forEach((p) => {
+                        places[p.Offset] = p.Label;
+                    })
+                    ctx.Transitions.forEach((t) => {
+                        transitions[t.Offset] = t.Label;
+                    })
+                    const {place, transition, arc, guard} = FlowBuilder({
+                        modelDsl: dsl,
+                        places,
+                        transitions
+                    });
+                    ctx.Places.forEach((p) => {
+                        place(p.Label, p.Initial, p.Capacity, scaleX(p.Position.X), scaleY(p.Position.Y));
+                    });
+                    ctx.Transitions.forEach((t) => {
+                        transition(t.Label, t.Role, scaleX(t.Position.X), scaleY(t.Position.Y));
+                        t.Delta.forEach((d, i) => {
+                            if (d < 0) {
+                                arc(places[i], t.Label, d);
+                            }
+                            if (d > 0) {
+                                arc(t.Label, places[i], d);
+                            }
+                        })
+                        t.Guard.forEach((g, i) => {
+                            if (g < 0) {
+                                guard(places[i], t.Label, g);
+                            }
+                            if (g > 0) {
+                                guard(t.Label, places[i], g);
+                            }
+                        });
+                    });
+                },
+                type: ModelType.petriNet
+            });
+            return this.petriNet.toObject('sparse');
+        });
+    }
+
+    async signal(action: string, scalar: string): Promise<any> {
+        if (!this.stateMachine) {
+            return {error: 'state machine contract not initialized'};
         }
-        // TODO: return a declaration object
 
-        console.log({context})
-    }
+        try {
+            const contract = await this.contract();
+            let tx;
 
-async signal(action: string, scalar: string): Promise<any> {
-    if (!this.stateMachine) {
-        return {error: 'state machine contract not initialized'};
-    }
+            if (action.includes(',') || scalar.includes(',')) {
+                const actionsArray = action.split(',').map(a => toBigInt(a.trim()));
+                const scalarsArray = scalar.split(',').map(s => toBigInt(s.trim()));
 
-    try {
-        const contract = await this.contract();
-        let tx;
+                if (actionsArray.length !== scalarsArray.length) {
+                    throw new Error('Actions and scalars arrays must be of the same length');
+                }
 
-        if (action.includes(',') || scalar.includes(',')) {
-            const actionsArray = action.split(',').map(a => toBigInt(a.trim()));
-            const scalarsArray = scalar.split(',').map(s => toBigInt(s.trim()));
-
-            if (actionsArray.length !== scalarsArray.length) {
-                throw new Error('Actions and scalars arrays must be of the same length');
+                tx = await contract.signalMany(actionsArray, scalarsArray);
+            } else {
+                tx = await contract.signal(toBigInt(action), toBigInt(scalar));
             }
 
-            tx = await contract.signalMany(actionsArray, scalarsArray);
-        } else {
-            tx = await contract.signal(toBigInt(action), toBigInt(scalar));
+            return await tx.wait();
+        } catch (err) {
+            return err;
         }
-
-        return await tx.wait();
-    } catch (err) {
-        return err;
     }
-}
 
-    async loadFromContract() {
+    async loadFromContract(): Promise<ModelDeclaration> {
         if (!this.stateMachine) {
             console.error('state machine contract not initialized');
-            return
+            return {} as ModelDeclaration;
         }
-        const modelCtx = await this.stateMachine.context();
-
-        const {places, transitions, state, sequence} = modelCtx;
-        const def = {
-            version: "v0" as Version,
-            modelType: ModelType.petriNet,
-            places: {},
-            transitions: {},
-            arcs: []
-        }
-        places.forEach((place) => {
-            const {label, offset, initial, capacity, position} = place;
-            const {x, y} = position;
-            def.places = {
-                [label]: {
-                    label,
-                    offset: Number(offset),
-                    initial: Number(initial),
-                    capacity: Number(capacity),
-                    x: Number(x),
-                    y: Number(y)
+        const convert = (n: bigint) => parseInt(n.toString());
+        return this.stateMachine.context().then((ctx) => {
+            this.petriNet = newModel({
+                declaration: (dsl: mm.Dsl) => {
+                    const places:  string[] = []
+                    const transitions: string[] = []
+                    ctx.places.forEach((p) => {
+                        places[convert(p.offset)] = p.label
+                    })
+                    ctx.transitions.forEach((t) => {
+                        transitions[convert(t.offset)] = t.label
+                    })
+                    const { place, transition, arc, guard } = FlowBuilder({
+                        modelDsl: dsl,
+                        places,
+                        transitions
+                    });
+                    ctx.places.forEach((p) => {
+                        place(p.label, convert(p.initial), convert(p.capacity), scaleX(convert(p.position.x)), scaleY(convert(p.position.y)));
+                    });
+                    ctx.transitions.forEach((t) => {
+                        transition(t.label, convert(t.role), scaleX(convert(t.position.x)), scaleY(convert(t.position.y)));
+                        t.delta.forEach((d, i) => {
+                            if (d < 0) {
+                                arc(places[i], t.label, convert(d));
+                            }
+                            if (d > 0) {
+                                arc(t.label, places[i], convert(d));
+                            }
+                        })
+                        t.guard.forEach((g, i) => {
+                            if (g < 0) {
+                                guard(places[i], t.label, convert(g));
+                            }
+                            if (g > 0) {
+                                guard(t.label, places[i], convert(g));
+                            }
+                        });
+                    });
                 },
-                ...def.places
-            };
+                type: ModelType.petriNet
+            })
+
+            return this.petriNet.toObject('sparse')
         })
-        transitions.forEach((transition) => {
-            const {label, offset, role, position, delta, guard} = transition;
-            const {x, y} = position;
-            def.transitions = {
-                [label]: {
-                    label,
-                    offset: Number(offset),
-                    role: Number(role),
-                    x: Number(x),
-                    y: Number(y),
-                    delta: delta.map((d) => Number(d)),
-                    guard: guard.map((g) => Number(g))
-                }
-            }
-        })
-        console.log({def})
-        // FIXME: add arcs/guards and install the new model
-        return Promise.resolve(def)
     }
 
     getState(): mm.Vector {

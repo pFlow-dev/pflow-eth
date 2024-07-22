@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import styles from './Transactions.module.css';
+import React, {useEffect, useState} from "react";
+import styles from "./Transactions.module.css";
 
 interface Transaction {
     sequence: number;
@@ -13,14 +13,14 @@ interface Transaction {
     removed: boolean;
 }
 
-function TransitionList() {
+export default function TransitionList() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     const fetchTransactions = () => {
-        fetch('/v0/transactions')
+        fetch("/v0/transactions")
             .then(response => response.json())
             .then(data => setTransactions(data))
-            .catch(error => console.error('Error fetching transactions:', error));
+            .catch(error => console.error("Error fetching transactions:", error));
     };
 
     useEffect(() => {
@@ -31,9 +31,9 @@ function TransitionList() {
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
-            console.log('Text copied to clipboard');
+            console.log("Text copied to clipboard");
         }).catch(err => {
-            console.error('Failed to copy text: ', err);
+            console.error("Failed to copy text: ", err);
         });
     };
 
@@ -57,7 +57,7 @@ function TransitionList() {
                         </thead>
                         <tbody>
                         {transactions.map((transaction, index) => (
-                            <tr key={index} className={transaction.removed ? styles.removedTransaction : ''}>
+                            <tr key={index} className={transaction.removed ? styles.removedTransaction : ""}>
                                 <td>{transaction.sequence}</td>
                                 <td>{transaction.block_number}</td>
                                 <td>{transaction.role}</td>
@@ -67,7 +67,7 @@ function TransitionList() {
                                     onClick={() => copyToClipboard(transaction.from_address)}>{transaction.from_address}</td>
                                 <td className={styles.truncated}
                                     onClick={() => copyToClipboard(transaction.transaction_hash)}>{transaction.transaction_hash}</td>
-                                <td>{transaction.removed ? 'Yes' : 'No'}</td>
+                                <td>{transaction.removed ? "Yes" : "No"}</td>
                             </tr>
                         ))}
                         </tbody>
@@ -76,9 +76,7 @@ function TransitionList() {
                     <p>No transactions found.</p>
                 )}
             </div>
-            &nbsp;EventLog Topic: {transactions.length > 0 ? transactions[0].topic_hash : ''}
+            &nbsp;EventLog Topic: {transactions.length > 0 ? transactions[0].topic_hash : ""}
         </div>
     );
 }
-
-export default TransitionList;

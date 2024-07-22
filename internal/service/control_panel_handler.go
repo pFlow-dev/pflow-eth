@@ -16,7 +16,7 @@ func (s *Service) ResetDb() bool {
 	return err == nil
 }
 
-func (s *Service) InsertBlockNumber(blockNumber int) bool {
+func (s *Service) InsertBlockNumber(blockNumber uint64) bool {
 	stmt, err := s.NodeDb.Prepare("INSERT INTO block_numbers (block_number) VALUES ($1)")
 	if err != nil {
 		return false
@@ -26,7 +26,7 @@ func (s *Service) InsertBlockNumber(blockNumber int) bool {
 	return err == nil
 }
 
-func (s Service) ControlPanelHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) ControlPanelHandler(w http.ResponseWriter, r *http.Request) {
 	if s.getNetwork(r.Host) != "hardhat" {
 		respondWithError(w, http.StatusBadRequest, "ControlPanel is only available on hardhat network")
 		return
