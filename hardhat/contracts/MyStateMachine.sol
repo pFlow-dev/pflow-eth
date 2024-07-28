@@ -48,7 +48,9 @@ library Model {
 
 interface ModelInterface {
     function context() external returns (Model.Context memory);
+
     function signal(uint8 action, uint256 scalar) external;
+
     function signalMany(uint8[] calldata actions, uint256[] calldata scalars) external;
 }
 
@@ -63,7 +65,7 @@ abstract contract PflowDSL {
     }
 
     function func(string memory label, uint8 vectorSize, uint8 action, uint8 role, Model.Position memory position) internal returns (Model.Transition memory) {
-        require(uint8(transitions.length) == action, "transaction => enum miss match");
+        require(uint8(transitions.length) == action, "transaction => enum mismatch");
         Model.Transition memory t = Model.Transition(label, action, position, role, new int256[](vectorSize), new int256[](vectorSize));
         transitions.push(t);
         return t;
@@ -102,7 +104,7 @@ abstract contract Metamodel is PflowDSL, ModelInterface {
 
     // isInhibited is a hook for derived contracts to implement transition guards
     function isInhibited(Model.Transition memory t) internal view virtual returns (bool);
-    
+
     // hasPermission implements an ACL for transitions based on user roles
     function hasPermission(Model.Transition memory t) internal view virtual returns (bool);
 
@@ -135,26 +137,28 @@ abstract contract Metamodel is PflowDSL, ModelInterface {
 }
 
 
-abstract contract MyModel is Metamodel {
-
-    enum Roles {DEFAULT, HALT}
+abstract contract MyModelContract is Metamodel {
+    enum Roles {role0, HALT}
     enum Properties {place0, SIZE}
     enum Actions {txn0, txn1, txn2, txn3, HALT}
 
     int256[] public state = new int256[](uint8(Properties.SIZE));
 
     constructor() {
-        cell("place0", 1, 3, Model.Position(1, 3));
+        cell("place0", 0, 3, Model.Position(1, 2));
 
-        func("txn0", uint8(Properties.SIZE), uint8(0), uint8(Roles.DEFAULT), Model.Position(0, 2));
-        func("txn1", uint8(Properties.SIZE), uint8(1), uint8(Roles.DEFAULT), Model.Position(2, 1));
-        func("txn2", uint8(Properties.SIZE), uint8(2), uint8(Roles.DEFAULT), Model.Position(0, 5));
-        func("txn3", uint8(Properties.SIZE), uint8(3), uint8(Roles.DEFAULT), Model.Position(2, 5));
+
+        func("txn0", uint8(Properties.SIZE), uint8(0), uint8(Roles.role0), Model.Position(0, 1));
+        func("txn1", uint8(Properties.SIZE), uint8(1), uint8(Roles.role0), Model.Position(2, 1));
+        func("txn2", uint8(Properties.SIZE), uint8(2), uint8(Roles.role0), Model.Position(0, 3));
+        func("txn3", uint8(Properties.SIZE), uint8(3), uint8(Roles.role0), Model.Position(2, 3));
+
 
         arrow(1, transitions[0], places[0]);
         arrow(3, places[0], transitions[1]);
         guard(3, transitions[2], places[0]);
         guard(1, places[0], transitions[3]);
+
 
         for (uint8 i = 0; i < uint8(Properties.SIZE); i++) {
             state[i] = int256(places[i].initial);
@@ -162,14 +166,14 @@ abstract contract MyModel is Metamodel {
     }
 }
 
-contract MyStateMachine is MyModel {
+contract MyStateMachine is MyModelContract {
 
     function isInhibited(Model.Transition memory t) internal view override returns (bool) {
         for (uint8 i = 0; i < uint8(Properties.SIZE); i++) {
             if (t.guard[i] != 0) {
                 if (t.guard[i] < 0) {
                     // inhibit unless condition is met
-                    if ((state[i] + t.guard[i]) > 0) {
+                    if ((state[i] + t.guard[i]) >= 0) {
                         return true;
                     }
                 } else {
@@ -182,11 +186,11 @@ contract MyStateMachine is MyModel {
         }
         return false;
     }
-    
+
     function hasPermission(Model.Transition memory t) internal view override returns (bool) {
         return t.role < uint8(Roles.HALT);
     }
-    
+
     function transform(uint8 i, Model.Transition memory t, uint256 scalar) internal override {
         require(scalar > 0, "invalid scalar");
         if (t.delta[i] != 0) {
@@ -201,4 +205,5 @@ contract MyStateMachine is MyModel {
     function context() external view override returns (Model.Context memory) {
         return Model.Context(sequence, state, places, transitions);
     }
+
 }

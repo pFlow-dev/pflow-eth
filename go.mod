@@ -5,9 +5,7 @@ go 1.21.0
 require (
 	github.com/GeertJohan/go.rice v1.0.3
 	github.com/ethereum/go-ethereum v1.14.6
-	github.com/gibson042/canonicaljson-go v1.0.3
 	github.com/gorilla/mux v1.8.1
-	github.com/lib/pq v1.10.9
 	github.com/newrelic/go-agent/v3 v3.33.0
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/logWriter v1.0.1
 )

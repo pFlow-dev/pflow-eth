@@ -1,61 +1,266 @@
 import * as mm from "./model";
+import {FlowBuilder, ModelDeclaration, ModelType, newModel } from "./model";
+import {ethers, toBigInt} from "ethers";
+import {MyStateMachine, MyStateMachine__factory} from "../typechain-types";
+import {ModelContext} from "./api";
+import React, {SetStateAction} from "react";
 
-export type MaybeNode = mm.Place | mm.Transition | null
-
-const noOp = () => {
-};
 
 const initialModel = mm.newModel({
-    declaration: (dsl: mm.Dsl) => {
-        const {fn, role, cell} = dsl;
-
-        const p1 = cell('p1', 1, 1, {x: 100, y: 100});
-        const p2 = cell('p2', 0, 0, {x: 200, y: 200});
-
-        const r0 = role('default');
-
-        const t1 = fn('t1', r0, {x: 200, y: 100});
-        const t2 = fn('t2', r0, {x: 100, y: 200});
-        const t3 = fn('t3', r0, {x: 350, y: 100});
-
-        t1.tx(1, p1)
-        t2.tx(1, p2)
-        p1.tx(1, t2)
-
-    },
-    type: mm.ModelType.petriNet
+    type: mm.ModelType.petriNet,
+    declaration: () => {}
 });
 
-
-interface StreamLog {
-    ts: number,
-    revision: number,
-    action: string,
-    href: string,
+type ModelOptions = {
+    address?: string, // falls back to hardhat default address
+    initialModel?: mm.Model,
+    updateHook?: React.Dispatch<SetStateAction<MetaModel>> | null,
 }
 
-type ModelOptions = {
-    editor: boolean
-    superModel?: boolean
-    schema?: string
+export type NodeStatus = {
+    build: string;
+    network: string;
+    session_data: {
+        last_ping: string;
+        login_at: string;
+        session_id: string;
+    };
+    status: string;
+    time: string;
+    block: string;
+    sequence: string;
+};
+
+const xScale = 80;
+const yScale = 80;
+const positionMargin = 22;
+
+function scaleX(x: number) {
+    return x * xScale + positionMargin;
+}
+
+function scaleY(y: number) {
+    return y * yScale ;
 }
 
 export class MetaModel {
-    m: mm.Model = initialModel;
+    petriNet: mm.Model = initialModel;
     height: number = 600;
-    logs: Map<number, StreamLog> = new Map<number, StreamLog>();
-    protected superModel: boolean = false;
-    protected updateHook: () => void = noOp;
+    stateMachine: MyStateMachine = {} as MyStateMachine;
+    address: string = '';
+    provider: ethers.BrowserProvider;
+    status: NodeStatus | null = null;
+    updateHook: React.Dispatch<SetStateAction<MetaModel>> | null = null;
 
-    constructor(opts: ModelOptions) {
-        if (opts.superModel) {
-            this.superModel = true;
+    constructor(opts?: ModelOptions) {
+        if (opts && opts.updateHook) {
+            this.updateHook = opts.updateHook;
         }
-        this.m = initialModel;
+        if (opts && opts.initialModel) {
+            this.petriNet = opts.initialModel;
+        } else {
+            this.petriNet = initialModel;
+        }
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+        if (opts?.address) {
+            this.address = opts.address;
+            this.stateMachine = MyStateMachine__factory.connect(opts.address, this.provider)
+        }
+    }
+
+    update(): void {
+        if (this.updateHook) {
+            this.updateHook(new MetaModel({
+                address: this.address,
+                initialModel: this.petriNet,
+                updateHook: this.updateHook,
+            }));
+        }
+    }
+
+    async contract(): Promise<MyStateMachine> {
+        // REVIEW can this happen during construction instead?
+        return this.stateMachine.connect(await this.provider.getSigner());
+    }
+
+    async getModelFromServer(): Promise<ModelContext> {
+        const url = `/v0/model?addr=${this.address}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return await response.json() as ModelContext;
+    }
+
+    getSession(): string {
+        return localStorage.getItem('session') || '';
+    }
+
+    setSession(session: string): void {
+        localStorage.setItem('session', session)
+    }
+
+    async pollServer(): Promise<NodeStatus | null> {
+        const response = await fetch('/v0/ping?session=' + this.getSession());
+        if (response.ok) {
+            this.status = await response.json() as NodeStatus;
+        }
+        return this.status;
+    }
+
+    async reloadModel(): Promise<void> {
+        if (localStorage.getItem('mode') === 'ForceApi') {
+            return this.loadFromServer().then(() => this.update());
+        } else {
+            return this.loadFromContract().then(() => this.update());
+        }
+    }
+
+    async loadFromServer(): Promise<ModelDeclaration> {
+        return this.getModelFromServer().then((modelContext) => {
+            const ctx = modelContext.context;
+            this.petriNet = newModel({
+                declaration: (dsl: mm.ModelBuilder) => {
+                    const places: string[] = []
+                    const transitions: string[] = []
+                    ctx.Places.forEach((p) => {
+                        places[p.Offset] = p.Label;
+                    })
+                    ctx.Transitions.forEach((t) => {
+                        transitions[t.Offset] = t.Label;
+                    })
+                    const {place, transition, arc, guard} = FlowBuilder({
+                        modelDsl: dsl,
+                        places,
+                        transitions
+                    });
+                    ctx.Places.forEach((p) => {
+                        // NOTE: 'initial' value in this context is set based on  latest on-chain state
+                        place(p.Label, ctx.State[p.Offset], p.Capacity, scaleX(p.Position.X), scaleY(p.Position.Y));
+                    });
+                    ctx.Transitions.forEach((t) => {
+                        transition(t.Label, t.Role, scaleX(t.Position.X), scaleY(t.Position.Y));
+                        t.Delta.forEach((d, i) => {
+                            if (d < 0) {
+                                arc(places[i], t.Label, 0-d);
+                            }
+                            if (d > 0) {
+                                arc(t.Label, places[i], d);
+                            }
+                        })
+                        t.Guard.forEach((g, i) => {
+                            if (g < 0) {
+                                guard(places[i], t.Label, 0-g);
+                            }
+                            if (g > 0) {
+                                guard(t.Label, places[i], g);
+                            }
+                        });
+                    });
+                },
+                type: ModelType.petriNet
+            });
+            return this.petriNet.toObject('sparse');
+        });
+    }
+
+    async signal(action: string, scalar: string): Promise<any> {
+        if (localStorage.getItem('mode') === 'ForceApi') {
+            return this.signalWallet(action, scalar);
+        }
+        return this.signalWallet(action, scalar);
+    }
+
+    async signalServer(action: string, scalar: string): Promise<any> {
+        const url = `/v0/signal?addr=${this.address}&session=${this.getSession()}&action=${action}&scalar=${scalar}`;
+        const response = await fetch(url);
+        return await response.json();
+    }
+
+    async signalWallet(action: string, scalar: string): Promise<any> {
+        if (!this.stateMachine) {
+            return {error: 'state machine contract not initialized'};
+        }
+
+        try {
+            const contract = await this.contract();
+            let tx;
+
+            if (action.includes(',') || scalar.includes(',')) {
+                const actionsArray = action.split(',').map(a => toBigInt(a.trim()));
+                const scalarsArray = scalar.split(',').map(s => toBigInt(s.trim()));
+
+                if (actionsArray.length !== scalarsArray.length) {
+                    throw new Error('Actions and scalars arrays must be of the same length');
+                }
+
+                tx = await contract.signalMany(actionsArray, scalarsArray);
+            } else {
+                tx = await contract.signal(toBigInt(action), toBigInt(scalar));
+            }
+
+            return await tx.wait();
+        } catch (err) {
+            return err;
+        }
+    }
+
+    async loadFromContract(): Promise<ModelDeclaration> {
+        if (!this.stateMachine) {
+            console.error('state machine contract not initialized');
+            return {} as ModelDeclaration;
+        }
+        const convert = (n: bigint) => parseInt(n.toString());
+        return this.stateMachine.context().then((ctx) => {
+            console.log('context', ctx);
+            this.petriNet = newModel({
+                declaration: (dsl: mm.ModelBuilder) => {
+                    const places:  string[] = []
+                    const transitions: string[] = []
+                    ctx.places.forEach((p) => {
+                        places[convert(p.offset)] = p.label
+                    })
+                    ctx.transitions.forEach((t) => {
+                        transitions[convert(t.offset)] = t.label
+                    })
+                    const { place, transition, arc, guard } = FlowBuilder({
+                        modelDsl: dsl,
+                        places,
+                        transitions
+                    });
+                    ctx.places.forEach((p) => {
+                        // NOTE: 'initial' value in this context is set based on  latest on-chain state
+                        place(p.label, convert(ctx.state[convert(p.offset)]), convert(p.capacity), scaleX(convert(p.position.x)), scaleY(convert(p.position.y)));
+                    });
+                    ctx.transitions.forEach((t) => {
+                        transition(t.label, convert(t.role), scaleX(convert(t.position.x)), scaleY(convert(t.position.y)));
+                        t.delta.forEach((d, i) => {
+                            if (d < 0) {
+                                arc(places[i], t.label, 0-convert(d));
+                            }
+                            if (d > 0) {
+                                arc(t.label, places[i], convert(d));
+                            }
+                        })
+                        t.guard.forEach((g, i) => {
+                            if (g < 0) {
+                                guard(places[i], t.label,0-convert(g));
+                            }
+                            if (g > 0) {
+                                guard(t.label, places[i], convert(g));
+                            }
+                        });
+                    });
+                },
+                type: ModelType.petriNet
+            })
+
+            return this.petriNet.toObject('sparse')
+        })
     }
 
     getState(): mm.Vector {
-        let s = this.m.initialVector();
+        let s = this.petriNet.initialVector();
         return [...s]
     }
 
@@ -69,16 +274,12 @@ export class MetaModel {
         return 0;
     }
 
-    isSuper(): boolean {
-        return this.superModel;
-    }
-
     getObj(id: string): mm.MetaObject {
-        let obj: mm.MetaObject | undefined = this.m.def.transitions.get(id);
+        let obj: mm.MetaObject | undefined = this.petriNet.def.transitions.get(id);
         if (obj) {
             return obj
         }
-        obj = this.m.def.places.get(id);
+        obj = this.petriNet.def.places.get(id);
         if (obj) {
             return obj
         }
@@ -97,10 +298,12 @@ export class MetaModel {
     }
 
     placeClick(id: string): Promise<void> {
+        console.log('placeClick', id);
         return Promise.resolve();
     }
 
     placeAltClick(id: string): Promise<void> {
+        console.log('placeAltClick', id);
         return Promise.resolve();
     }
 
@@ -114,13 +317,19 @@ export class MetaModel {
 
     testFire(action: string): { ok: boolean; inhibited: boolean } {
         let state = this.getState();
-        const res = this.m.fire(state, action, 1);
+        const res = this.petriNet.fire(state, action, 1);
         return {ok: res.ok, inhibited: !!res.inhibited};
     }
 
 
     transitionClick(id: string): Promise<void> {
-        return Promise.resolve();
+        const t = this.petriNet.def.transitions.get(id)
+        if (!t) {
+            throw new Error('transition not found: ' + id);
+        }
+        return this.signal(`${t.offset}`, '1').then(() => {
+            this.reloadModel().then(() => this.update());
+        });
     }
 
     getTransition(id: string): mm.Transition {
@@ -129,6 +338,20 @@ export class MetaModel {
             return obj;
         }
         throw new Error('not a transition: ' + id)
+    }
+
+    setRole(role: string): void {
+        localStorage.setItem('role', role);
+    }
+
+    getRoles(): string[] {
+        const roles: string[] = [];
+        this.petriNet.def.transitions.forEach((t) => {
+            if (!roles.includes(t.role.label)) {
+                roles.push(t.role.label);
+            }
+        })
+        return roles
     }
 
     arcClick(id: number): Promise<void> {

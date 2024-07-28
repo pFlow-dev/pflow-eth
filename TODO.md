@@ -1,28 +1,28 @@
 WIP
 ---
-produce minimal version of a Dapp using 'the framework' publish as pflow-eth
+- [ ] launch MVP: sepolia-optimism.pflow.xyz:
+  (no transaction download/storage, just contract browsing and state machine actions)
 
-- [ ] build sample app end-to-end integration
-    - [ ] support multi-user roles 
-
-- [ ] Auto-init state /v0/signal?action=0&scalar=2 (UI doesn't work out of the box)
+- [ ] support using multiple contracts(allow inputs)
+- [ ] consider optimizing sync by monitoring the sequence value in the contract ping
 
 BACKLOG
 -------
-- [ ] multi-step transaction UX (button pushing, then commit)
-    - [ ] how to compose / present: /v0/signal?action=2,2,2,2&scalar=123,123,3,4
-
-- [ ] blockfight - (game) on-chain button mashing karate fight
+- [ ] shift+click to select multiple transitions and adjust repeat count (scalar values)
 
 ICEBOX
-------
-- [ ] build complete beginner intro guide
+-------
+- [ ] make a flow for users to register their contracts for transaction monitoring on pflow.xyz
+- [ ] experiment with multiple streams of contract events & subscribe/store
+- [ ] consider viewing model history: left/right arrows show what happened in each frame
 
-- [ ] update the docker-compose config to support hostnames
-
-- [ ] add better sql initialization
-
-- [ ] what's it like to monitor (and merge?/ import events) from multiple contract addresses???
 
 DONE
 ----
+- [x] upgrade web2/web3 when wallet is connected - send signal command from wallet when connected instead of API
+- [x] make 'transaction builder' using the petri-net GUI
+- [x] finish anonymous session support - 'log in' w/ websocket
+- [x] add session time-out
+- [x] use model definition to populate UI labels for known values
+- [x] finish unpacking the petri-net model from (on-chain call or server)
+- [x] enhance the pflowDSL so metamodel declaration looks more like solidity

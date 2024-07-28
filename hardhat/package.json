@@ -2,6 +2,7 @@
   "name": "pflow-eth",
   "version": "0.0.1",
   "scripts": {
+    "generate-types": "hardhat typechain",
     "remix": "open https://remix.ethereum.org ; remixd -s ./ -u https://remix.ethereum.org",
     "chain": "hardhat node --network hardhat --hostname 0.0.0.0",
     "compile": "hardhat compile",
