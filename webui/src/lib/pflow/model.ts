@@ -157,12 +157,15 @@ export type ModelDeclaration = {
 
 export interface FlowDSL {
     place(label: string, initial: number, capacity: number, x: number, y: number): void
+
     transition(label: string, role: number, x: number, y: number): void
+
     arc(from: string, to: string, weight: number, inhibit?: boolean): void
+
     guard(from: string, to: string, weight: number): void
 }
 
-export interface DeclarationArgs{
+export interface DeclarationArgs {
     modelDsl: ModelBuilder,
     places: string[],
     transitions: string[]
@@ -173,7 +176,7 @@ export function FlowBuilder({modelDsl, places, transitions}: DeclarationArgs): F
     const _pl: PlaceNode[] = []
     const _tx: TxNode[] = [];
 
-    function arc( from: string, to: string, weight: number = 1, inhibit: boolean = false) {
+    function arc(from: string, to: string, weight: number = 1, inhibit: boolean = false) {
         let _from = places.indexOf(from);
         let _from_place = true;
         if (_from < 0) {
@@ -185,7 +188,7 @@ export function FlowBuilder({modelDsl, places, transitions}: DeclarationArgs): F
             _to = transitions.indexOf(to);
         }
 
-        if (inhibit)  {
+        if (inhibit) {
             if (_from_place) {
                 _pl[_from].guard(weight, _tx[_to])
             } else {
@@ -200,7 +203,7 @@ export function FlowBuilder({modelDsl, places, transitions}: DeclarationArgs): F
         }
     }
 
-    function guard( from: string, to: string, weight: number = 1) {
+    function guard(from: string, to: string, weight: number = 1) {
         arc(from, to, weight, true)
     }
 
@@ -218,7 +221,7 @@ export function FlowBuilder({modelDsl, places, transitions}: DeclarationArgs): F
         if (i < 0) {
             throw new Error("transition not found: " + label)
         } else {
-            _tx[i] = modelDsl.fn(label, modelDsl.role("role"+role), {x, y})
+            _tx[i] = modelDsl.fn(label, modelDsl.role("role" + role), {x, y})
         }
     }
 
@@ -947,31 +950,31 @@ export function newModel({declaration, type}: ModelOptions): Model {
         return def.places.get(id) || def.transitions.get(id);
     }
 
-function newLabel(label: string, suffix?: number): string {
-    const labelExists = (label: string): boolean => objectExists(label);
+    function newLabel(label: string, suffix?: number): string {
+        const labelExists = (label: string): boolean => objectExists(label);
 
-    const incrementSuffix = (label: string): string => {
-        const match = label.match(/^(.*?)(\d+)$/);
-        if (match) {
-            const prefix = match[1];
-            const num = parseInt(match[2], 10) + 1;
-            return `${prefix}${num}`;
-        } else {
-            return `${label}-1`;
+        const incrementSuffix = (label: string): string => {
+            const match = label.match(/^(.*?)(\d+)$/);
+            if (match) {
+                const prefix = match[1];
+                const num = parseInt(match[2], 10) + 1;
+                return `${prefix}${num}`;
+            } else {
+                return `${label}-1`;
+            }
+        };
+
+        let newLabel = label;
+        if (suffix !== undefined) {
+            newLabel += suffix.toString();
         }
-    };
 
-    let newLabel = label;
-    if (suffix !== undefined) {
-        newLabel += suffix.toString();
+        while (labelExists(newLabel)) {
+            newLabel = incrementSuffix(newLabel);
+        }
+
+        return newLabel;
     }
-
-    while (labelExists(newLabel)) {
-        newLabel = incrementSuffix(newLabel);
-    }
-
-    return newLabel;
-}
 
     function setArcWeight(offset: number, weight: number): boolean {
         const arc = def.arcs[offset];

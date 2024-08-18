@@ -1,0 +1,1 @@
+curl http://127.0.0.1:8083/v0/faucet?addr=ED705777CF02e8daB381aC58F292CbefEb442A7c

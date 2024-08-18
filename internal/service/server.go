@@ -16,12 +16,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 )
 
 type Service struct {
-	*Sessions
 	Client          *ethclient.Client
 	Logger          *log.Logger
 	Router          *mux.Router
@@ -36,9 +34,6 @@ type Server interface {
 
 func New() Server {
 	s := &Service{
-		Sessions: &Sessions{
-			sessions: make(map[string]*SessionData),
-		},
 		Router: mux.NewRouter(),
 	}
 	var err error
@@ -88,8 +83,15 @@ func (s *Service) WrapHandler(pattern string, handler HandlerWithVars) {
 	}
 }
 
+func (s *Service) Metric(name string, value float64) {
+	if s.apm != nil {
+		s.apm.RecordCustomMetric(name, value)
+	}
+}
+
 // Event record custom event in apm and log
 func (s *Service) Event(eventType string, params map[string]interface{}) {
+
 	if s.apm != nil {
 		s.apm.RecordCustomEvent(eventType, params)
 	}
@@ -99,29 +101,21 @@ func (s *Service) Event(eventType string, params map[string]interface{}) {
 }
 
 func (s *Service) Serve(box *rice.Box) {
-
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigChan
-	}()
-
-	go s.CleanupSessions()
 	s.applicationRoutes(box)
 	s.apiRoutes()
 	err := http.ListenAndServe(config.Host+":"+config.Port, s.Router)
+	s.cancelFunc()
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (s *Service) apiRoutes() {
-	s.Router.HandleFunc("/v0/ping", s.PingHandler)
 	s.Router.HandleFunc("/v0/authenticate", s.loginHandler)
+	s.Router.HandleFunc("/v0/faucet", s.FaucetHandler)
 }
 
-func (s *Service) getContractSequence() int64 {
-	address := common.HexToAddress(config.Address)
+func (s *Service) getContractSequence(address common.Address) int64 {
 	contract, _ := metamodel.NewMetamodel(address, s.Client)
 	res, err := contract.Sequence(nil)
 	if err != nil {
@@ -136,4 +130,44 @@ func (s *Service) getLatestBlockNumber() int64 {
 		return -1
 	}
 	return header.Number.Int64()
+}
+
+func (s *Service) getNonce(address common.Address) string {
+	nonce, err := s.Client.PendingNonceAt(context.Background(), address)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", nonce)
+}
+
+func (*Service) getNetwork(r *http.Request) string {
+	host := r.Host
+	hostname := strings.Split(host, ":")[0]
+
+	if hostname == "127.0.0.1" || hostname == "localhost" {
+		return "hardhat"
+	}
+
+	subdomain := strings.Split(hostname, ".")[0]
+	if network, exists := config.SubdomainToNetwork[subdomain]; exists {
+		return network
+	}
+	return "unknown"
+}
+
+// construct a uuid build string from the JS and CSS build numbers
+func getBuild() string {
+	hexString := config.JsBuild + "000000000001" + "0000" + config.CssBuild
+
+	return fmt.Sprintf("%s-%s-%s-%s-%s",
+		hexString[0:8], hexString[8:12], hexString[12:16], hexString[16:20], hexString[20:32])
+}
+
+var buildUuid = getBuild()
+
+func (s *Service) getSessionData(sessionID string) (map[string]interface{}, error) {
+	status := make(map[string]interface{})
+	status["status"] = "ok"
+	status["build"] = buildUuid
+	return status, nil
 }

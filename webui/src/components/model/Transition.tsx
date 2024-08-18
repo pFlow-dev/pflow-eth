@@ -1,5 +1,9 @@
 import React from "react";
 import {MetaModel} from "../../lib/pflow";
+import { useWeb3ModalProvider, useWeb3ModalAccount } from '@web3modal/ethers/react'
+import { BrowserProvider, Contract, formatUnits } from 'ethers'
+
+
 
 interface TransitionProps {
     id: string;
@@ -8,6 +12,10 @@ interface TransitionProps {
 
 export default function Transition(props: TransitionProps) {
     const {metaModel} = props;
+    const { address, chainId, isConnected } = useWeb3ModalAccount()
+    const { walletProvider } = useWeb3ModalProvider()
+    const provider =  walletProvider ? new BrowserProvider(walletProvider) : undefined;
+
 
     function getHandleWidth() {
         return 36;
@@ -29,7 +37,9 @@ export default function Transition(props: TransitionProps) {
     }
 
     async function onClick(evt: React.MouseEvent) {
-        await metaModel.transitionClick(props.id);
+        if (provider && isConnected) {
+            await metaModel.transitionClick(provider, props.id);
+        }
         evt.stopPropagation();
     }
 

@@ -1,0 +1,1 @@
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0xED705777CF02e8daB381aC58F292CbefEb442A7c", "latest"],"id":1}' -H "Content-Type: application/json" http://127.0.0.1:8545

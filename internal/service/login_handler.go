@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"net/http"
@@ -65,12 +64,6 @@ func (s *Service) loginHandler(w http.ResponseWriter, r *http.Request) {
 		loginRespondWithJSON(w, http.StatusUnauthorized, jsonResponse{Success: false, Error: "Invalid signature"})
 		return
 	}
-
-	session = s.StartSession(r, t, common.HexToAddress(address))
-	s.Event("login", map[string]interface{}{
-		"session": session,
-		"address": address,
-	})
 
 	loginRespondWithJSON(w, http.StatusOK, jsonResponse{Success: true, Data: map[string]string{"session": session}})
 }
