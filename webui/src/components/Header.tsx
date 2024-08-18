@@ -33,20 +33,18 @@ export default function Header() {
         };
     }, [headerWidth]);
     return(<svg className={styles.svgHeader}>
-        <rect x="0" y="0" width="100%" height="60" fill="#FFF" stroke="#00000033"/>
-        <foreignObject x="14" y="13" width="100%" height="35px">
-            <a href={"https://pflow.xyz"} >
-                <Logo/>
-            </a>
-        </foreignObject>
-        <foreignObject x={headerWidth - 320} y="10" width="100%" height="100%">
-            <w3m-button/>
-        </foreignObject>
-        <foreignObject x={headerWidth/2 - 270} y="18" width="100%" height="100%">
-            <OpenContract/>
-        </foreignObject>
-
-
-    </svg>
-)
+            <rect x="0" y="0" width="100%" height="60" fill="#FFF" stroke="#00000033"/>
+            <foreignObject x="14" y="13" width="100%" height="35px">
+                <a href={"https://pflow.xyz"}>
+                    <Logo/>
+                </a>
+            </foreignObject>
+            <foreignObject x={headerWidth / 2 - 270} y="18" width="100%" height="100%">
+                <OpenContract/>
+            </foreignObject>
+            <foreignObject x={headerWidth - 320} y="10" width="100%" height="100%">
+                <w3m-button/>
+            </foreignObject>
+        </svg>
+    )
 }
