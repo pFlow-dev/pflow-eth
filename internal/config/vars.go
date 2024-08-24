@@ -4,10 +4,8 @@ import (
 	"os"
 )
 
-// FIXME: Set Webui Version: main.6a6e9436.js main.88d73541.css
-
 var (
-	JsBuild         = "6a6e9436"                     // Update to match the path ./public/p/static/js/main.<JsBuild>.js
+	JsBuild         = "dfad7428"                     // Update to match the path ./public/p/static/js/main.<JsBuild>.js
 	CssBuild        = "88d73541"                     // Update to match the path ./public/p/static/css/main.<CssBuild>.css
 	Endpoint        = "http://hardhat:8545"          // Default endpoint, can be overridden by ENDPOINT env var
 	Port            = "8083"                         // Default port, can be overridden by PORT env var

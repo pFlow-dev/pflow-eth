@@ -23,6 +23,11 @@ function hexValue(value: BigNumberish): string {
     return "0x" + value.toString(16);
 }
 
+function isValidEthAddress(address: string): boolean {
+    const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+    return ethAddressRegex.test(address);
+}
+
 type ModelOptions = {
     initialModel?: mm.Model,
     updateHook?: React.Dispatch<SetStateAction<MetaModel>> | null,
@@ -138,7 +143,11 @@ export class MetaModel {
 
     async getStateMachine(provider: ethers.BrowserProvider): Promise<MyStateMachine> {
         return provider.getNetwork().then(async (network) => {
-            const address = getAddressByNetwork(network.chainId);
+            let address = new URLSearchParams(window.location.search).get('address');
+            if (address && !isValidEthAddress(address)) {
+                throw new Error("Invalid Ethereum address");
+            }
+            address = address || getAddressByNetwork(network.chainId);
             const signer = await provider.getSigner();
             return MyStateMachine__factory.connect(address, signer);
         });
